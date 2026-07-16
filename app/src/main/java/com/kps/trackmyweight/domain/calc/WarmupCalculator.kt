@@ -27,15 +27,19 @@ object WarmupCalculator {
         mechanics: ExerciseMechanics,
         barKg: Float = 20f,
     ): List<WarmupSet> {
-        if (topSetKg <= barKg) return emptyList()
+        if (topSetKg <= 0f) return emptyList()
         return when (mechanics) {
-            ExerciseMechanics.COMPOUND -> listOf(
-                WarmupSet(weightKg = barKg, reps = 8, restSec = 60),
-                warmupPct(topSetKg, 0.40f, reps = 8, restSec = 90),
-                warmupPct(topSetKg, 0.60f, reps = 5, restSec = 90),
-                warmupPct(topSetKg, 0.80f, reps = 3, restSec = 120),
-                warmupPct(topSetKg, 0.90f, reps = 1, restSec = 120),
-            ).filter { it.weightKg >= barKg }
+            ExerciseMechanics.COMPOUND -> {
+                // Un compound utilise une barre. Si le top set n'excède pas la barre, pas d'échauffement.
+                if (topSetKg <= barKg) emptyList()
+                else listOf(
+                    WarmupSet(weightKg = barKg, reps = 8, restSec = 60),
+                    warmupPct(topSetKg, 0.40f, reps = 8, restSec = 90),
+                    warmupPct(topSetKg, 0.60f, reps = 5, restSec = 90),
+                    warmupPct(topSetKg, 0.80f, reps = 3, restSec = 120),
+                    warmupPct(topSetKg, 0.90f, reps = 1, restSec = 120),
+                ).filter { it.weightKg >= barKg }
+            }
             ExerciseMechanics.ISOLATION -> listOf(
                 warmupPct(topSetKg, 0.50f, reps = 10, restSec = 30),
                 warmupPct(topSetKg, 0.75f, reps = 6, restSec = 60),
