@@ -71,7 +71,7 @@ class BackupService @Inject constructor(
         // Sleep, steps, water, daily logs
         val allSleep = bodyDao.observeMeasurements().first() // placeholder, use proper dao
         // We need broader queries; use range large enough
-        val today = LocalDate.fromEpochDays(kotlinx.datetime.Clock.System.now().toEpochMilliseconds() / 86400000L)
+        val today = kotlinx.datetime.Clock.System.now().toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
         val fromEarly = LocalDate(2020, 1, 1)
         val sleep = habitDao.getSleepInRange(fromEarly, LocalDate(2100, 1, 1))
         val steps = habitDao.getStepsInRange(fromEarly, LocalDate(2100, 1, 1))
@@ -133,7 +133,7 @@ class BackupService @Inject constructor(
         // proprement — pour Phase 7 on itère depuis la première date connue.
         val allMeals = mutableListOf<MealEntity>()
         // Découverte par une requête simple : on récupère 100 000 jours arrière au max, mais on borne à 2 ans.
-        val today = LocalDate.fromEpochDays(kotlinx.datetime.Clock.System.now().toEpochMilliseconds() / 86400000L)
+        val today = kotlinx.datetime.Clock.System.now().toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
         val startDay = LocalDate.fromEpochDays(today.toEpochDays() - 730)
         var d = startDay
         while (d <= today) {
@@ -147,7 +147,7 @@ class BackupService @Inject constructor(
         // Water est agrégé par date via observeWaterMlForDate. On ne stocke pas d'entries individuelles ici
         // (l'agrégat suffit pour le suivi). On échantillonne 2 ans en arrière avec le total du jour.
         val out = mutableListOf<BWater>()
-        val today = LocalDate.fromEpochDays(kotlinx.datetime.Clock.System.now().toEpochMilliseconds() / 86400000L)
+        val today = kotlinx.datetime.Clock.System.now().toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
         var d = LocalDate.fromEpochDays(today.toEpochDays() - 730)
         while (d <= today) {
             val total = dao.observeWaterMlForDate(d).first()
