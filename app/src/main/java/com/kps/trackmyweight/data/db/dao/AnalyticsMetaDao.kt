@@ -4,7 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import androidx.room.Upsert
+import androidx.room.Upsert  // conservé pour syncState (PK naturelle)
 import com.kps.trackmyweight.data.db.entity.AppEventEntity
 import com.kps.trackmyweight.data.db.entity.BackupRecordEntity
 import com.kps.trackmyweight.data.db.entity.CorrelationInsightEntity
@@ -18,7 +18,8 @@ import kotlinx.datetime.LocalDate
 interface AnalyticsMetaDao {
 
     // ── Weekly reviews ────────────────────────────────────
-    @Upsert
+    // @Insert(REPLACE) car unique(weekStart).
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertWeeklyReview(r: WeeklyReviewEntity): Long
 
     @Query("SELECT * FROM weekly_review WHERE weekStart = :weekStart LIMIT 1")

@@ -4,7 +4,6 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import androidx.room.Upsert
 import com.kps.trackmyweight.data.db.entity.BodyCompositionSnapshotEntity
 import com.kps.trackmyweight.data.db.entity.BodyMeasurementSessionEntity
 import com.kps.trackmyweight.data.db.entity.ProgressPhotoEntity
@@ -17,7 +16,8 @@ import kotlinx.datetime.LocalDate
 interface BodyDao {
 
     // ── Weight ────────────────────────────────────────────
-    @Upsert
+    // @Insert(REPLACE) car unique(date) — @Upsert ne gère que les conflits sur PK.
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertWeight(entry: WeightEntryEntity): Long
 
     @Query("SELECT * FROM weight_entry WHERE deletedAt IS NULL ORDER BY date DESC LIMIT :limit")
@@ -36,7 +36,7 @@ interface BodyDao {
     suspend fun softDeleteWeight(id: Long, now: kotlinx.datetime.Instant)
 
     // ── Measurements ──────────────────────────────────────
-    @Upsert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertMeasurement(session: BodyMeasurementSessionEntity): Long
 
     @Query("SELECT * FROM body_measurement_session ORDER BY date DESC")

@@ -4,7 +4,6 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import androidx.room.Upsert
 import com.kps.trackmyweight.data.db.entity.ExerciseEntity
 import com.kps.trackmyweight.data.db.entity.ExerciseEquipmentRequirementEntity
 import com.kps.trackmyweight.data.db.entity.ExerciseSubstitutionEntity
@@ -14,7 +13,8 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ExerciseDao {
 
-    @Upsert
+    // @Insert(REPLACE) car unique(slug).
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertExercise(exercise: ExerciseEntity): Long
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
