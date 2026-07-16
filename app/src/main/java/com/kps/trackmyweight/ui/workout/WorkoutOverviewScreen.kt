@@ -41,6 +41,7 @@ import com.kps.trackmyweight.data.db.enums.PrKind
 fun WorkoutOverviewScreen(
     onStartSession: (Long) -> Unit,
     onEditTemplate: (Long?) -> Unit = {},
+    onOpenCardio: () -> Unit = {},
     vm: WorkoutOverviewViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
@@ -94,6 +95,14 @@ fun WorkoutOverviewScreen(
                     onClick = { onEditTemplate(null) },
                     modifier = Modifier,
                 ) { Text("+ Nouveau template") }
+            }
+
+            Section("Cardio") {
+                androidx.compose.material3.Button(
+                    onClick = onOpenCardio,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                ) { Text("Loguer une séance cardio") }
             }
 
             Section("Records récents") {

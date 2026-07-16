@@ -27,6 +27,7 @@ import com.kps.trackmyweight.ui.nutrition.NutritionScreen
 import com.kps.trackmyweight.ui.photos.PhotosScreen
 import com.kps.trackmyweight.ui.weight.WeightScreen
 import com.kps.trackmyweight.ui.workout.WorkoutOverviewScreen
+import com.kps.trackmyweight.ui.workout.cardio.CardioLogScreen
 import com.kps.trackmyweight.ui.workout.session.SessionActiveScreen
 import com.kps.trackmyweight.ui.workout.template.TemplateEditorScreen
 
@@ -83,7 +84,11 @@ fun AppNavHost(
                     navController.navigate("session/$sessionId")
                 },
                 onEditTemplate = { id -> navController.navigate("template/${id ?: 0L}") },
+                onOpenCardio = { navController.navigate("cardio") },
             )
+        }
+        composable("cardio") {
+            CardioLogScreen(onDone = { navController.popBackStack() })
         }
         composable(
             route = "template/{id}",
