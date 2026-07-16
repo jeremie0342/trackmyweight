@@ -11,9 +11,9 @@ import org.junit.Test
 class NutritionCalculatorTest {
 
     @Test fun `bmr Mifflin-St Jeor male reference case`() {
-        // Homme 30 ans, 84 kg, 180 cm → BMR théorique ~ 1830
+        // Homme 30 ans, 84 kg, 180 cm → 10*84 + 6.25*180 - 5*30 + 5 = 1820
         val bmr = NutritionCalculator.bmr(Sex.MALE, 84f, 180f, 30)
-        assertEquals(1830, bmr)
+        assertEquals(1820, bmr)
     }
 
     @Test fun `bmr Mifflin-St Jeor female reference case`() {
@@ -23,11 +23,11 @@ class NutritionCalculatorTest {
     }
 
     @Test fun `tdee scales with activity`() {
-        val bmr = 1830
+        val bmr = 1820
         val sedentary = NutritionCalculator.tdee(bmr, ActivityLevel.SEDENTARY)
         val veryActive = NutritionCalculator.tdee(bmr, ActivityLevel.VERY_ACTIVE)
-        assertEquals(2196, sedentary)
-        assertEquals(3157, veryActive)
+        assertEquals(2184, sedentary)   // 1820 * 1.2
+        assertEquals(3140, veryActive)  // 1820 * 1.725 = 3139.5 → 3140
         assertTrue("veryActive should be > sedentary", veryActive > sedentary)
     }
 
@@ -102,8 +102,8 @@ class NutritionCalculatorTest {
             today = LocalDate(2026, 7, 15),
             targetDate = LocalDate(2027, 1, 15),
         )
-        assertEquals(1830, targets.bmr)
-        assertEquals(3157, targets.tdee)
+        assertEquals(1820, targets.bmr)
+        assertEquals(3140, targets.tdee)
         assertEquals(GoalPhase.CUT, targets.recommendedPhase)
         assertTrue("kcal target should be in cut range", targets.targetKcal in 2500..3100)
         assertTrue("deficit should be positive", targets.deficitKcal > 0)
