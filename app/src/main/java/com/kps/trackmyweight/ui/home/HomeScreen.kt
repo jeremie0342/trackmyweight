@@ -47,7 +47,10 @@ import com.kps.trackmyweight.domain.calc.SleepDuration
 import com.kps.trackmyweight.ui.common.PrimaryButton
 
 @Composable
-fun HomeScreen(vm: HomeViewModel = hiltViewModel()) {
+fun HomeScreen(
+    onOpenReports: () -> Unit = {},
+    vm: HomeViewModel = hiltViewModel(),
+) {
     val state by vm.state.collectAsState()
     var showReadiness by remember { mutableStateOf(false) }
     var showWater by remember { mutableStateOf(false) }
@@ -74,6 +77,7 @@ fun HomeScreen(vm: HomeViewModel = hiltViewModel()) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
+            ReportsShortcut(onClick = onOpenReports)
             ReadinessCard(state = state, onOpen = { showReadiness = true })
             WeightSummary(state)
             MacrosSummary(state)
@@ -111,6 +115,20 @@ fun HomeScreen(vm: HomeViewModel = hiltViewModel()) {
 }
 
 // ─────────── Cards ───────────
+
+@Composable
+private fun ReportsShortcut(onClick: () -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
+        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+    ) {
+        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("Rapport hebdo & Coach", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.SemiBold)
+            Text("Synthèse de la semaine, projection vers l'objectif et conseils personnalisés.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimary)
+        }
+    }
+}
 
 @Composable
 private fun ReadinessCard(state: HomeUiState, onOpen: () -> Unit) {

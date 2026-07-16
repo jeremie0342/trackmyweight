@@ -25,6 +25,7 @@ import com.kps.trackmyweight.ui.home.HomeScreen
 import com.kps.trackmyweight.ui.measurements.MeasurementsScreen
 import com.kps.trackmyweight.ui.nutrition.NutritionScreen
 import com.kps.trackmyweight.ui.photos.PhotosScreen
+import com.kps.trackmyweight.ui.reports.ReportsScreen
 import com.kps.trackmyweight.ui.weight.WeightScreen
 import com.kps.trackmyweight.ui.workout.WorkoutOverviewScreen
 import com.kps.trackmyweight.ui.workout.cardio.CardioLogScreen
@@ -77,7 +78,10 @@ fun AppNavHost(
         navController = navController,
         startDestination = TopLevel.HOME.route,
     ) {
-        composable(TopLevel.HOME.route) { HomeScreen() }
+        composable(TopLevel.HOME.route) {
+            HomeScreen(onOpenReports = { navController.navigate("reports") })
+        }
+        composable("reports") { ReportsScreen() }
         composable(TopLevel.WORKOUT.route) {
             WorkoutOverviewScreen(
                 onStartSession = { sessionId ->

@@ -35,18 +35,21 @@ object NonLinearProjection {
         val trendPerWeek = slopePerDay * 7f
         val hasPlateauExpected = kotlin.math.abs(trendPerWeek) < 0.15f
 
-        // Détermine k pour que la variation initiale colle à la pente linéaire
-        val diff = targetWeightKg - currentWeight
+        // Détermine k pour que la variation initiale colle à la pente linéaire.
+        // Modèle W(t) = W_target + (W_current − W_target) × exp(−k × t).
+        // Dérivée en t=0 : −k × (W_current − W_target) = slopePerDay.
+        // Donc k = −slopePerDay / (W_current − W_target). k>0 quand on converge vers la cible.
+        val diff = currentWeight - targetWeightKg   // positif si on doit descendre
         val k = if (kotlin.math.abs(diff) > 0.1f) {
             (-slopePerDay / diff).coerceIn(-0.05f, 0.05f)
         } else 0f
 
         val daysToTarget = today.daysUntil(targetDate)
-        val projectedAtTarget = targetWeightKg + (currentWeight - targetWeightKg) * exp(-k * daysToTarget.toFloat())
+        val projectedAtTarget = targetWeightKg + diff * exp(-k * daysToTarget.toFloat())
 
-        // ETA en modèle non-linéaire : quand W(t) atteint la cible ±0.3kg (arrivée asymptotique)
+        // ETA : jour où l'on arrive à ±0.3 kg de la cible.
         val eta = if (k > 0f && kotlin.math.abs(diff) > 0.3f) {
-            val t = -kotlin.math.ln(0.3f / kotlin.math.abs(diff)) / k
+            val t = kotlin.math.ln(kotlin.math.abs(diff) / 0.3f) / k
             if (t.isFinite() && t > 0) LocalDate.fromEpochDays(today.toEpochDays() + t.toInt()) else null
         } else null
 
