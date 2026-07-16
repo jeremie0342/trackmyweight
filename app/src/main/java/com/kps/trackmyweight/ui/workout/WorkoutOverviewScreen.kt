@@ -40,6 +40,7 @@ import com.kps.trackmyweight.data.db.enums.PrKind
 @Composable
 fun WorkoutOverviewScreen(
     onStartSession: (Long) -> Unit,
+    onEditTemplate: (Long?) -> Unit = {},
     vm: WorkoutOverviewViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
@@ -74,17 +75,25 @@ fun WorkoutOverviewScreen(
             Section("Templates") {
                 if (state.templates.isEmpty()) {
                     Text(
-                        "Aucun template pour l'instant. Démarre une séance libre pour commencer.",
+                        "Aucun template pour l'instant. Crée-en un ou démarre une séance libre.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         state.templates.forEach { t ->
-                            TemplateRow(t, onStart = { vm.startSession(t.id, onStartSession) })
+                            TemplateRow(
+                                t = t,
+                                onStart = { vm.startSession(t.id, onStartSession) },
+                                onEdit = { onEditTemplate(t.id) },
+                            )
                         }
                     }
                 }
+                androidx.compose.material3.TextButton(
+                    onClick = { onEditTemplate(null) },
+                    modifier = Modifier,
+                ) { Text("+ Nouveau template") }
             }
 
             Section("Records récents") {
@@ -128,7 +137,7 @@ private fun Section(title: String, content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun TemplateRow(t: WorkoutTemplateEntity, onStart: () -> Unit) {
+private fun TemplateRow(t: WorkoutTemplateEntity, onStart: () -> Unit, onEdit: () -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         shape = RoundedCornerShape(16.dp),
@@ -144,6 +153,7 @@ private fun TemplateRow(t: WorkoutTemplateEntity, onStart: () -> Unit) {
                     Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
+            androidx.compose.material3.TextButton(onClick = onEdit) { Text("Modifier") }
             Icon(Icons.Outlined.PlayArrow, contentDescription = "Démarrer", tint = MaterialTheme.colorScheme.primary)
         }
     }

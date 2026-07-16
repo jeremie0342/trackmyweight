@@ -26,6 +26,7 @@ import com.kps.trackmyweight.ui.photos.PhotosScreen
 import com.kps.trackmyweight.ui.weight.WeightScreen
 import com.kps.trackmyweight.ui.workout.WorkoutOverviewScreen
 import com.kps.trackmyweight.ui.workout.session.SessionActiveScreen
+import com.kps.trackmyweight.ui.workout.template.TemplateEditorScreen
 
 enum class TopLevel(val route: String, val label: String, val icon: ImageVector) {
     HOME("home", "Aujourd'hui", Icons.Outlined.Home),
@@ -78,6 +79,16 @@ fun AppNavHost(
                 onStartSession = { sessionId ->
                     navController.navigate("session/$sessionId")
                 },
+                onEditTemplate = { id -> navController.navigate("template/${id ?: 0L}") },
+            )
+        }
+        composable(
+            route = "template/{id}",
+            arguments = listOf(androidx.navigation.navArgument("id") { type = androidx.navigation.NavType.LongType }),
+        ) {
+            TemplateEditorScreen(
+                templateId = it.arguments?.getLong("id")?.takeIf { v -> v > 0L },
+                onSaved = { navController.popBackStack() },
             )
         }
         composable(TopLevel.WEIGHT.route) { WeightScreen() }
