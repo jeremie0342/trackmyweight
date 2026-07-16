@@ -90,7 +90,7 @@ object TimeSeries {
         val daysNeeded = ((targetValue - intercept) / slope).toDouble()
         if (daysNeeded.isNaN() || daysNeeded.isInfinite() || daysNeeded < 0.0) return null
         val origin = points.minOf { it.date }
-        return origin.plusDays(daysNeeded.toInt())
+        return origin.plusDays(kotlin.math.round(daysNeeded).toInt())
     }
 
     private fun LocalDate.plusDays(days: Int): LocalDate =
