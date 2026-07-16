@@ -3,14 +3,10 @@ package com.kps.trackmyweight.ui.theme
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontFeature
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.sp
-
-// Chiffres tabulaires partout où c'est de la donnée
-private val TabularFeatures = listOf(FontFeature("tnum"), FontFeature("lnum"))
 
 private val displayLineHeight = LineHeightStyle(
     alignment = LineHeightStyle.Alignment.Center,
