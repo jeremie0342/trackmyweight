@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.TrackMyWeight" parent="android:Theme.Material.NoActionBar" />
+
+    <style name="Theme.TrackMyWeight.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#0A0A0B</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.TrackMyWeight</item>
+    </style>
+</resources>
