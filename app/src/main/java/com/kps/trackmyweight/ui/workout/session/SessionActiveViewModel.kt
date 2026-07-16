@@ -18,6 +18,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -66,9 +67,7 @@ class SessionActiveViewModel @Inject constructor(
                 val last = workoutRepo.lastSetForExercise(pe.exerciseId)
                 ExerciseCard(pe, ex, sets, last)
             }
-            val all = exerciseRepo.observeAll().let { flow ->
-                kotlinx.coroutines.flow.first(flow) { true }
-            }
+            val all = exerciseRepo.observeAll().first()
             _state.update {
                 it.copy(session = session, exercises = cards, allExercises = all)
             }
