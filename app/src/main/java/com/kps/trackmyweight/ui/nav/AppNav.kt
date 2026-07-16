@@ -3,6 +3,7 @@ package com.kps.trackmyweight.ui.nav
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CameraAlt
+import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.MonitorWeight
 import androidx.compose.material.icons.outlined.Straighten
@@ -23,14 +24,15 @@ import com.kps.trackmyweight.ui.home.HomeScreen
 import com.kps.trackmyweight.ui.measurements.MeasurementsScreen
 import com.kps.trackmyweight.ui.photos.PhotosScreen
 import com.kps.trackmyweight.ui.weight.WeightScreen
+import com.kps.trackmyweight.ui.workout.WorkoutOverviewScreen
+import com.kps.trackmyweight.ui.workout.session.SessionActiveScreen
 
 enum class TopLevel(val route: String, val label: String, val icon: ImageVector) {
     HOME("home", "Aujourd'hui", Icons.Outlined.Home),
+    WORKOUT("workout", "Séance", Icons.Outlined.FitnessCenter),
     WEIGHT("weight", "Poids", Icons.Outlined.MonitorWeight),
-    MEASUREMENTS("measurements", "Mensurations", Icons.Outlined.Straighten),
+    MEASUREMENTS("measurements", "Corps", Icons.Outlined.Straighten),
     PHOTOS("photos", "Photos", Icons.Outlined.CameraAlt),
-    // Placeholder — sera activé en Phase 3
-    // GYM("gym", "Salle", Icons.Outlined.FitnessCenter),
 }
 
 @Composable
@@ -71,8 +73,22 @@ fun AppNavHost(
         startDestination = TopLevel.HOME.route,
     ) {
         composable(TopLevel.HOME.route) { HomeScreen() }
+        composable(TopLevel.WORKOUT.route) {
+            WorkoutOverviewScreen(
+                onStartSession = { sessionId ->
+                    navController.navigate("session/$sessionId")
+                },
+            )
+        }
         composable(TopLevel.WEIGHT.route) { WeightScreen() }
         composable(TopLevel.MEASUREMENTS.route) { MeasurementsScreen() }
         composable(TopLevel.PHOTOS.route) { PhotosScreen() }
+        composable(
+            route = "session/{id}",
+            arguments = listOf(androidx.navigation.navArgument("id") { type = androidx.navigation.NavType.LongType }),
+        ) { backStack ->
+            val id = backStack.arguments?.getLong("id") ?: 0L
+            SessionActiveScreen(sessionId = id, onFinished = { navController.popBackStack() })
+        }
     }
 }
