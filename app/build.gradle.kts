@@ -132,6 +132,8 @@ dependencies {
     // Feature libs
     implementation(libs.health.connect)
     implementation(libs.workmanager)
+    implementation(libs.glance.appwidget)
+    implementation(libs.glance.material3)
     implementation(libs.coil.compose)
     implementation(libs.vico.compose.m3)
     implementation(libs.security.crypto)

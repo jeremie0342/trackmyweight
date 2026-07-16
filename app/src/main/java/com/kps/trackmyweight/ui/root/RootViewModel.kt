@@ -3,6 +3,7 @@ package com.kps.trackmyweight.ui.root
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kps.trackmyweight.data.repository.UserProfileRepository
+import com.kps.trackmyweight.reminders.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,6 +16,7 @@ enum class RootDestination { LOADING, ONBOARDING, HOME }
 @HiltViewModel
 class RootViewModel @Inject constructor(
     private val userRepo: UserProfileRepository,
+    private val reminderScheduler: ReminderScheduler,
 ) : ViewModel() {
 
     private val _destination = MutableStateFlow(RootDestination.LOADING)
@@ -22,11 +24,19 @@ class RootViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            _destination.value = if (userRepo.isOnboarded()) RootDestination.HOME else RootDestination.ONBOARDING
+            val onboarded = userRepo.isOnboarded()
+            _destination.value = if (onboarded) RootDestination.HOME else RootDestination.ONBOARDING
+            if (onboarded) scheduleReminders()
         }
     }
 
     fun markOnboardingDone() {
         _destination.value = RootDestination.HOME
+        scheduleReminders()
+    }
+
+    private fun scheduleReminders() {
+        reminderScheduler.scheduleMorningWeighIn()
+        reminderScheduler.scheduleMonthlyMeasurement()
     }
 }

@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">TrackMyWeight</string>
+    <string name="widget_weight_description">Affiche ta dernière pesée</string>
+    <string name="notif_channel_reminders">Rappels</string>
+    <string name="notif_channel_reminders_desc">Pesées, mensurations, hydratation</string>
 </resources>
