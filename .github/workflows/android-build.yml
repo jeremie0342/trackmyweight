@@ -209,6 +209,9 @@ jobs:
           arch: x86_64
           target: google_apis
           force-avd-creation: false
+          ram-size: 4096M
+          heap-size: 512M
+          disk-size: 6144M
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: echo "AVD ready"
@@ -220,6 +223,9 @@ jobs:
           arch: x86_64
           target: google_apis
           force-avd-creation: false
+          ram-size: 4096M
+          heap-size: 512M
+          disk-size: 6144M
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: ./gradlew :app:connectedDebugAndroidTest --no-daemon --stacktrace
