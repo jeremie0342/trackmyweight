@@ -9,6 +9,7 @@ import com.kps.trackmyweight.data.repository.GoalRepository
 import com.kps.trackmyweight.data.repository.UserProfileRepository
 import com.kps.trackmyweight.data.repository.WeightRepository
 import com.kps.trackmyweight.domain.calc.BmiCalculator
+import com.kps.trackmyweight.widget.WeightWidgetUpdater
 import com.kps.trackmyweight.domain.calc.BmiCategory
 import com.kps.trackmyweight.domain.calc.DatedValue
 import com.kps.trackmyweight.domain.calc.SmoothedPoint
@@ -51,6 +52,7 @@ class WeightViewModel @Inject constructor(
     private val weightRepo: WeightRepository,
     userRepo: UserProfileRepository,
     goalRepo: GoalRepository,
+    private val widgetUpdater: WeightWidgetUpdater,
 ) : ViewModel() {
 
     private data class SaveState(val isSaving: Boolean = false, val error: String? = null)
@@ -111,7 +113,10 @@ class WeightViewModel @Inject constructor(
         }
         _saveState.update { it.copy(isSaving = true, error = null) }
         viewModelScope.launch {
-            runCatching { weightRepo.log(date, weightKg) }
+            runCatching {
+                weightRepo.log(date, weightKg)
+                widgetUpdater.refresh()
+            }
                 .onSuccess { _saveState.value = SaveState() }
                 .onFailure { _saveState.value = SaveState(error = it.message ?: "Erreur d'enregistrement") }
         }
