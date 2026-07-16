@@ -46,8 +46,8 @@ import kotlinx.serialization.Serializable
 data class BackupRoot(
     val schemaVersion: Int = SCHEMA_VERSION,
     val exportedAt: String,
-    val profile: BProfile?,
-    val activeGoal: BGoal?,
+    val profile: BProfile? = null,
+    val activeGoal: BGoal? = null,
     val weights: List<BWeight> = emptyList(),
     val measurements: List<BMeasurement> = emptyList(),
     val meals: List<BMeal> = emptyList(),
@@ -60,7 +60,7 @@ data class BackupRoot(
     val water: List<BWater> = emptyList(),
     val dailyLogs: List<BDailyLog> = emptyList(),
     val habitCompletions: List<BHabitCompletion> = emptyList(),
-    val activePhase: BDietPhase?,
+    val activePhase: BDietPhase? = null,
 ) {
     companion object { const val SCHEMA_VERSION = 1 }
 }
