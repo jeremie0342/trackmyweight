@@ -59,6 +59,7 @@ data class BodyMeasurementSessionEntity(
     indices = [
         Index(value = ["date", "angle"], unique = true),
         Index(value = ["date"]),
+        Index(value = ["overlayReferencePhotoId"]),
     ],
     foreignKeys = [
         ForeignKey(
@@ -83,7 +84,10 @@ data class ProgressPhotoEntity(
 
 @Entity(
     tableName = "body_composition_snapshot",
-    indices = [Index(value = ["date"], unique = true)],
+    indices = [
+        Index(value = ["date"], unique = true),
+        Index(value = ["sourceMeasurementSessionId"]),
+    ],
     foreignKeys = [
         ForeignKey(
             entity = BodyMeasurementSessionEntity::class,
