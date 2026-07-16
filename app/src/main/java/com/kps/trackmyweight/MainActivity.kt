@@ -16,7 +16,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import com.kps.trackmyweight.ui.home.HomeScreen
+import com.kps.trackmyweight.ui.nav.AppBottomBar
+import com.kps.trackmyweight.ui.nav.AppNavHost
+import com.kps.trackmyweight.ui.nav.rememberAppNavController
 import com.kps.trackmyweight.ui.onboarding.OnboardingHost
 import com.kps.trackmyweight.ui.root.RootDestination
 import com.kps.trackmyweight.ui.root.RootViewModel
@@ -49,12 +51,29 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun RootRouter(destination: RootDestination, onOnboardingDone: () -> Unit) {
-    Scaffold { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-            when (destination) {
-                RootDestination.LOADING -> CircularProgressIndicator()
-                RootDestination.ONBOARDING -> OnboardingHost(onCompleted = onOnboardingDone)
-                RootDestination.HOME -> HomeScreen()
+    when (destination) {
+        RootDestination.LOADING -> {
+            Scaffold { padding ->
+                Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+        }
+        RootDestination.ONBOARDING -> {
+            Scaffold { padding ->
+                Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+                    OnboardingHost(onCompleted = onOnboardingDone)
+                }
+            }
+        }
+        RootDestination.HOME -> {
+            val navController = rememberAppNavController()
+            Scaffold(
+                bottomBar = { AppBottomBar(navController) },
+            ) { padding ->
+                Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+                    AppNavHost(navController, padding)
+                }
             }
         }
     }
