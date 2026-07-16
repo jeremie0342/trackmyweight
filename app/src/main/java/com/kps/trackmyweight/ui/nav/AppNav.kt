@@ -6,6 +6,7 @@ import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.MonitorWeight
+import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material.icons.outlined.Straighten
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -22,6 +23,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.kps.trackmyweight.ui.home.HomeScreen
 import com.kps.trackmyweight.ui.measurements.MeasurementsScreen
+import com.kps.trackmyweight.ui.nutrition.NutritionScreen
 import com.kps.trackmyweight.ui.photos.PhotosScreen
 import com.kps.trackmyweight.ui.weight.WeightScreen
 import com.kps.trackmyweight.ui.workout.WorkoutOverviewScreen
@@ -31,6 +33,7 @@ import com.kps.trackmyweight.ui.workout.template.TemplateEditorScreen
 enum class TopLevel(val route: String, val label: String, val icon: ImageVector) {
     HOME("home", "Aujourd'hui", Icons.Outlined.Home),
     WORKOUT("workout", "Séance", Icons.Outlined.FitnessCenter),
+    NUTRITION("nutrition", "Nutrition", Icons.Outlined.Restaurant),
     WEIGHT("weight", "Poids", Icons.Outlined.MonitorWeight),
     MEASUREMENTS("measurements", "Corps", Icons.Outlined.Straighten),
     PHOTOS("photos", "Photos", Icons.Outlined.CameraAlt),
@@ -91,6 +94,7 @@ fun AppNavHost(
                 onSaved = { navController.popBackStack() },
             )
         }
+        composable(TopLevel.NUTRITION.route) { NutritionScreen() }
         composable(TopLevel.WEIGHT.route) { WeightScreen() }
         composable(TopLevel.MEASUREMENTS.route) { MeasurementsScreen() }
         composable(TopLevel.PHOTOS.route) { PhotosScreen() }
