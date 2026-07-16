@@ -90,6 +90,25 @@ app/src/main/java/com/kps/trackmyweight/
 - SplashScreen API, Biometric, Security Crypto
 - Min SDK 26, Target SDK 35
 
+## Politique de tests
+
+Chaque phase du roadmap étend la couverture. Objectif : à la fin de la Phase 7, une CI
+verte garantit qu'aucune régression n'est passée. Deux niveaux :
+
+**JVM unit tests (`src/test/`)** — logique métier pure (calculs BMR/TDEE, résolution
+portion → grammes, Navy body fat, moyenne mobile, corrélations, projection, streak,
+plate calculator, ...). Rapides (~30s), aucun émulateur, exécutés dans le job
+`unit-tests` du workflow à chaque push.
+
+**Instrumented tests (`src/androidTest/`)** — Room queries (agrégats, cascades, FTS,
+foreign keys), WorkManager jobs, widgets Glance, flows Compose end-to-end. Exécutés
+dans le job `instrumented-tests` avec émulateur headless API 30 en CI (~10 min).
+
+Règle : **aucune phase n'est marquée "completed"** tant que
+- la logique métier de la phase est couverte par des tests JVM
+- les DAOs/écrans touchés sont couverts par des tests instrumentés
+- la CI est verte sur `main`
+
 ## Local dev (si tu as la RAM)
 
 Ouvre le dossier dans Android Studio, laisse-le générer le wrapper Gradle et sync.
