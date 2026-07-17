@@ -1,0 +1,67 @@
+name: Bug report
+description: Signaler un dysfonctionnement de l'application
+title: "[Bug] "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de prendre le temps de signaler un bug. Plus tu fournis d'infos,
+        plus vite on peut le corriger.
+
+  - type: input
+    id: app-version
+    attributes:
+      label: Version de l'app
+      description: Visible dans _Plus → À propos_ ou dans le nom de l'APK téléchargé
+      placeholder: "v1.0.0-beta ou v0.1.53"
+    validations:
+      required: true
+
+  - type: input
+    id: android-version
+    attributes:
+      label: Modèle + version Android
+      placeholder: "Samsung A54 · Android 14"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Étapes pour reproduire
+      description: Le plus précis possible
+      placeholder: |
+        1. Ouvrir l'onglet Nutrition
+        2. Rechercher "poulet"
+        3. Cliquer sur le premier résultat
+        4. Choisir mode "Paume", quantité 1
+        5. Cliquer Ajouter → l'app crash
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportement attendu
+    validations:
+      required: true
+
+  - type: textarea
+    id: observed
+    attributes:
+      label: Comportement observé
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs (facultatif)
+      description: Si tu as un PC avec ADB, colle ici `adb logcat -d -s AndroidRuntime:E`
+      render: text
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Captures d'écran (facultatif)
