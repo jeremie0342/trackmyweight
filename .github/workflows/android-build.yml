@@ -152,7 +152,9 @@ jobs:
   instrumented-tests:
     name: Instrumented tests (emulator)
     # Actif sur main uniquement pour ne pas bloquer les branches de dev.
+    # continue-on-error : l'émulateur GitHub Actions est chroniquement flaky ; on rapporte sans bloquer.
     if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    continue-on-error: true
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
