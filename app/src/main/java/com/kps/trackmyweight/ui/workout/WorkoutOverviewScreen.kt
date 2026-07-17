@@ -14,8 +14,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import android.content.Intent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -127,8 +133,22 @@ fun WorkoutOverviewScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
+                    val ctx = LocalContext.current
+                    val scope = rememberCoroutineScope()
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        state.recentSessions.forEach { s -> SessionRow(s) }
+                        state.recentSessions.forEach { s ->
+                            SessionRow(s, onShare = {
+                                scope.launch {
+                                    val text = vm.coachTextFor(s.id)
+                                    val intent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_TEXT, text)
+                                        putExtra(Intent.EXTRA_SUBJECT, "Séance ${s.date}")
+                                    }
+                                    ctx.startActivity(Intent.createChooser(intent, "Partager la séance"))
+                                }
+                            })
+                        }
                     }
                 }
             }
@@ -194,7 +214,7 @@ private fun PrRow(pr: PersonalRecordEntity) {
 }
 
 @Composable
-private fun SessionRow(s: WorkoutSessionEntity) {
+private fun SessionRow(s: WorkoutSessionEntity, onShare: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -210,6 +230,9 @@ private fun SessionRow(s: WorkoutSessionEntity) {
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+        IconButton(onClick = onShare) {
+            Icon(Icons.Outlined.Share, contentDescription = "Partager", tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

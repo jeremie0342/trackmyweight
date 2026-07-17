@@ -51,6 +51,9 @@ interface UserDao {
     @Query("UPDATE gym SET isDefault = 0")
     suspend fun clearDefaultGyms()
 
+    @Query("UPDATE gym SET isDefault = :isDefault WHERE id = :gymId")
+    suspend fun setGymDefault(gymId: Long, isDefault: Boolean)
+
     // Equipment
     @Query("SELECT * FROM equipment ORDER BY category, displayName")
     fun observeEquipment(): Flow<List<EquipmentEntity>>

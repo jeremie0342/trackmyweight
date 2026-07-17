@@ -21,6 +21,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.kps.trackmyweight.ui.corps.CorpsHubScreen
+import com.kps.trackmyweight.ui.gyms.GymsScreen
 import com.kps.trackmyweight.ui.home.HomeScreen
 import com.kps.trackmyweight.ui.measurements.MeasurementsScreen
 import com.kps.trackmyweight.ui.nutrition.NutritionScreen
@@ -121,6 +122,9 @@ fun AppNavHost(
         composable("measurements") { MeasurementsScreen() }
         composable("photos") { PhotosScreen() }
 
-        composable(TopLevel.SETTINGS.route) { SettingsScreen() }
+        composable(TopLevel.SETTINGS.route) {
+            SettingsScreen(onOpenGyms = { navController.navigate("gyms") })
+        }
+        composable("gyms") { GymsScreen() }
     }
 }

@@ -55,4 +55,10 @@ class GymRepository @Inject constructor(
 
     fun observeEquipmentForGym(gymId: Long): Flow<List<EquipmentEntity>> =
         userDao.observeEquipmentForGym(gymId)
+
+    /** Définit la salle passée en argument comme salle active. */
+    suspend fun setDefaultGym(gymId: Long) = db.withTransaction {
+        userDao.clearDefaultGyms()
+        userDao.setGymDefault(gymId, true)
+    }
 }

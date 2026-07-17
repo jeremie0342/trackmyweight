@@ -151,9 +151,8 @@ jobs:
 
   instrumented-tests:
     name: Instrumented tests (emulator)
-    # Ne tourne que sur déclenchement manuel via l'onglet Actions.
-    # Les pushes normaux ne le lancent pas, on batch les tests à la fin de chaque phase.
-    if: github.event_name == 'workflow_dispatch'
+    # Actif sur main uniquement pour ne pas bloquer les branches de dev.
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:

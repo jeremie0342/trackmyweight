@@ -64,4 +64,8 @@ class WorkoutOverviewViewModel @Inject constructor(
     }
 
     fun consumeStartingId() { _startingSessionId.value = null }
+
+    /** Renvoie le texte formaté à envoyer au coach pour une session. */
+    suspend fun coachTextFor(sessionId: Long): String =
+        workoutRepo.formatSessionForCoach(sessionId)
 }
