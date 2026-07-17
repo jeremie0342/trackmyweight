@@ -145,6 +145,7 @@ dependencies {
     implementation(libs.camerax.camera2)
     implementation(libs.camerax.lifecycle)
     implementation(libs.camerax.view)
+    implementation(libs.concurrent.futures)
 
     // Java 8+ APIs desugaring (for java.time on API < 26 usage patterns)
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
