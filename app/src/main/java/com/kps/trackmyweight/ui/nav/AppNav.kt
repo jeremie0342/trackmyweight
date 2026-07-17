@@ -65,7 +65,7 @@ fun AppBottomBar(navController: NavHostController) {
                     }
                 },
                 icon = { Icon(dest.icon, contentDescription = dest.label) },
-                label = { Text(dest.label) },
+                // Pas de label — icônes seulement. Le contentDescription reste pour TalkBack.
             )
         }
     }
@@ -83,7 +83,7 @@ fun AppNavHost(
         composable(TopLevel.HOME.route) {
             HomeScreen(onOpenReports = { navController.navigate("reports") })
         }
-        composable("reports") { ReportsScreen() }
+        composable("reports") { ReportsScreen(onBack = { navController.popBackStack() }) }
 
         composable(TopLevel.WORKOUT.route) {
             WorkoutOverviewScreen(
@@ -92,7 +92,12 @@ fun AppNavHost(
                 onOpenCardio = { navController.navigate("cardio") },
             )
         }
-        composable("cardio") { CardioLogScreen(onDone = { navController.popBackStack() }) }
+        composable("cardio") {
+            CardioLogScreen(
+                onDone = { navController.popBackStack() },
+                onBack = { navController.popBackStack() },
+            )
+        }
         composable(
             route = "template/{id}",
             arguments = listOf(androidx.navigation.navArgument("id") { type = androidx.navigation.NavType.LongType }),
@@ -100,6 +105,7 @@ fun AppNavHost(
             TemplateEditorScreen(
                 templateId = it.arguments?.getLong("id")?.takeIf { v -> v > 0L },
                 onSaved = { navController.popBackStack() },
+                onBack = { navController.popBackStack() },
             )
         }
         composable(
@@ -107,7 +113,11 @@ fun AppNavHost(
             arguments = listOf(androidx.navigation.navArgument("id") { type = androidx.navigation.NavType.LongType }),
         ) { backStack ->
             val id = backStack.arguments?.getLong("id") ?: 0L
-            SessionActiveScreen(sessionId = id, onFinished = { navController.popBackStack() })
+            SessionActiveScreen(
+                sessionId = id,
+                onFinished = { navController.popBackStack() },
+                onBack = { navController.popBackStack() },
+            )
         }
 
         composable(TopLevel.NUTRITION.route) { NutritionScreen() }
@@ -119,10 +129,13 @@ fun AppNavHost(
                 onOpenPhotos = { navController.navigate("photos") },
             )
         }
-        composable("weight") { WeightScreen() }
-        composable("measurements") { MeasurementsScreen() }
+        composable("weight") { WeightScreen(onBack = { navController.popBackStack() }) }
+        composable("measurements") { MeasurementsScreen(onBack = { navController.popBackStack() }) }
         composable("photos") {
-            PhotosScreen(onOpenCamera = { navController.navigate("camera_capture") })
+            PhotosScreen(
+                onOpenCamera = { navController.navigate("camera_capture") },
+                onBack = { navController.popBackStack() },
+            )
         }
         composable("camera_capture") {
             CameraCaptureScreen(onDone = { navController.popBackStack() })
@@ -131,6 +144,6 @@ fun AppNavHost(
         composable(TopLevel.SETTINGS.route) {
             SettingsScreen(onOpenGyms = { navController.navigate("gyms") })
         }
-        composable("gyms") { GymsScreen() }
+        composable("gyms") { GymsScreen(onBack = { navController.popBackStack() }) }
     }
 }

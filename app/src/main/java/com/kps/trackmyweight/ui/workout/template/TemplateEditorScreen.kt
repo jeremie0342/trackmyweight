@@ -50,6 +50,7 @@ import com.kps.trackmyweight.ui.common.TextField
 fun TemplateEditorScreen(
     templateId: Long?,
     onSaved: () -> Unit,
+    onBack: () -> Unit = onSaved,
     vm: TemplateEditorViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
@@ -78,11 +79,9 @@ fun TemplateEditorScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Spacer(Modifier.height(16.dp))
-            Text(
-                if (state.templateId == null) "Nouveau template" else "Modifier template",
-                style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.SemiBold,
+            com.kps.trackmyweight.ui.common.BackHeader(
+                title = if (state.templateId == null) "Nouveau template" else "Modifier template",
+                onBack = onBack,
             )
 
             TextField(label = "Nom", value = state.name, onValueChange = vm::setName)

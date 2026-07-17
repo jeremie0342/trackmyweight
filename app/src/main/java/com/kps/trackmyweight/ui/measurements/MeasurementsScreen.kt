@@ -33,7 +33,10 @@ import com.kps.trackmyweight.domain.calc.WhtrCategory
 import com.kps.trackmyweight.ui.common.NumericField
 
 @Composable
-fun MeasurementsScreen(vm: MeasurementsViewModel = hiltViewModel()) {
+fun MeasurementsScreen(
+    onBack: () -> Unit = {},
+    vm: MeasurementsViewModel = hiltViewModel(),
+) {
     val state by vm.state.collectAsState()
 
     Scaffold(
@@ -56,12 +59,7 @@ fun MeasurementsScreen(vm: MeasurementsViewModel = hiltViewModel()) {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Spacer(Modifier.height(16.dp))
-            Text(
-                "Mensurations",
-                style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.SemiBold,
-            )
+            com.kps.trackmyweight.ui.common.BackHeader(title = "Mensurations", onBack = onBack)
 
             state.lastComposition?.let { CompositionCard(it) }
             state.whtr?.let { WhtrCard(it, state.whtrCategory) }

@@ -58,6 +58,7 @@ import java.io.File
 @Composable
 fun PhotosScreen(
     onOpenCamera: () -> Unit = {},
+    onBack: () -> Unit = {},
     vm: PhotosViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
@@ -99,12 +100,7 @@ fun PhotosScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Spacer(Modifier.height(16.dp))
-            Text(
-                "Photos",
-                style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.SemiBold,
-            )
+            com.kps.trackmyweight.ui.common.BackHeader(title = "Photos", onBack = onBack)
 
             AngleSelector(state.selectedAngle, onSelect = vm::selectAngle)
 

@@ -37,6 +37,7 @@ import com.kps.trackmyweight.data.repository.WeeklyReport
 import com.kps.trackmyweight.domain.calc.CoachAdvice
 import com.kps.trackmyweight.domain.calc.CoachAdviceKind
 import com.kps.trackmyweight.domain.calc.NutritionCalculator
+import com.kps.trackmyweight.ui.common.BackHeader
 import com.kps.trackmyweight.ui.common.PrimaryButton
 import androidx.compose.material3.TextButton
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -113,7 +114,10 @@ class ReportsViewModel @Inject constructor(
 }
 
 @Composable
-fun ReportsScreen(vm: ReportsViewModel = hiltViewModel()) {
+fun ReportsScreen(
+    onBack: () -> Unit = {},
+    vm: ReportsViewModel = hiltViewModel(),
+) {
     val state by vm.state.collectAsState()
 
     Scaffold(containerColor = MaterialTheme.colorScheme.background) { insets ->
@@ -125,8 +129,7 @@ fun ReportsScreen(vm: ReportsViewModel = hiltViewModel()) {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Spacer(Modifier.height(16.dp))
-            Text("Rapport hebdo", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.SemiBold)
+            BackHeader(title = "Rapport hebdo", onBack = onBack)
 
             val r = state.report
             if (r == null) {

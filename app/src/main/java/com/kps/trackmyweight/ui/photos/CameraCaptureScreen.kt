@@ -125,8 +125,20 @@ fun CameraCaptureScreen(
             )
         }
 
+        // Bouton fermer en haut à gauche
+        IconButton(
+            onClick = onDone,
+            modifier = Modifier.align(Alignment.TopStart).padding(8.dp),
+        ) {
+            Icon(
+                androidx.compose.material.icons.Icons.Outlined.Close,
+                contentDescription = "Fermer",
+                tint = Color.White,
+            )
+        }
+
         Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp).align(Alignment.TopCenter),
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp, start = 64.dp, end = 16.dp).align(Alignment.TopCenter),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             PhotoAngle.entries.forEach { a ->

@@ -96,7 +96,10 @@ class GymsViewModel @Inject constructor(
 }
 
 @Composable
-fun GymsScreen(vm: GymsViewModel = hiltViewModel()) {
+fun GymsScreen(
+    onBack: () -> Unit = {},
+    vm: GymsViewModel = hiltViewModel(),
+) {
     val state by vm.state.collectAsState()
     var showCreate by remember { mutableStateOf(false) }
 
@@ -120,8 +123,7 @@ fun GymsScreen(vm: GymsViewModel = hiltViewModel()) {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Spacer(Modifier.height(16.dp))
-            Text("Mes salles", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.SemiBold)
+            com.kps.trackmyweight.ui.common.BackHeader(title = "Mes salles", onBack = onBack)
             Text(
                 "La salle active filtre les exercices proposés en séance selon son équipement.",
                 style = MaterialTheme.typography.bodyMedium,

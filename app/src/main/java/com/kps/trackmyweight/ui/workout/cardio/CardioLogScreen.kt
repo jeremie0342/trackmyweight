@@ -116,6 +116,7 @@ class CardioLogViewModel @Inject constructor(
 @Composable
 fun CardioLogScreen(
     onDone: () -> Unit,
+    onBack: () -> Unit = onDone,
     vm: CardioLogViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
@@ -142,8 +143,7 @@ fun CardioLogScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Spacer(Modifier.height(16.dp))
-            Text("Cardio", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.SemiBold)
+            com.kps.trackmyweight.ui.common.BackHeader(title = "Cardio", onBack = onBack)
 
             Text("Type", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {

@@ -49,6 +49,7 @@ import com.kps.trackmyweight.ui.common.Sparkline
 
 @Composable
 fun WeightScreen(
+    onBack: () -> Unit = {},
     vm: WeightViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
@@ -75,11 +76,7 @@ fun WeightScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Spacer(Modifier.height(WindowInsets.statusBars.asPaddingValues().calculateTopPadding()))
-            Text(
-                "Poids",
-                style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.SemiBold,
-            )
+            com.kps.trackmyweight.ui.common.BackHeader(title = "Poids", onBack = onBack)
 
             HeroCard(state)
             if (state.entries.size >= 2) TrendCard(state)

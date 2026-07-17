@@ -57,6 +57,7 @@ import com.kps.trackmyweight.ui.common.PrimaryButton
 fun SessionActiveScreen(
     sessionId: Long,
     onFinished: () -> Unit,
+    onBack: () -> Unit = onFinished,
     vm: SessionActiveViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
@@ -86,12 +87,10 @@ fun SessionActiveScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Spacer(Modifier.height(16.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "Séance en cours",
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.SemiBold,
+                com.kps.trackmyweight.ui.common.BackHeader(
+                    title = "Séance en cours",
+                    onBack = onBack,
                     modifier = Modifier.weight(1f),
                 )
                 TextButton(onClick = { showFinishDialog = true }) {
