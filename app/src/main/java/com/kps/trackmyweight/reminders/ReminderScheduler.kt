@@ -43,10 +43,47 @@ class ReminderScheduler @Inject constructor(
         )
     }
 
+    /** Rappel du soir à 20:30 si aucune séance n'a été loguée aujourd'hui. */
+    fun scheduleSessionNotLogged() {
+        val work = PeriodicWorkRequestBuilder<SessionNotLoggedReminderWorker>(1, TimeUnit.DAYS)
+            .setInitialDelay(computeInitialDelayForHour(hour = 20, minute = 30), TimeUnit.MILLISECONDS)
+            .build()
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+            WORK_SESSION_NOT_LOGGED,
+            ExistingPeriodicWorkPolicy.KEEP,
+            work,
+        )
+    }
+
+    /** Rappel hydratation à 14:00 et 18:00 (deux workers séparés pour deux fenêtres). */
+    fun scheduleHydration() {
+        listOf(14 to 0, 18 to 0).forEachIndexed { i, (h, m) ->
+            val work = PeriodicWorkRequestBuilder<HydrationReminderWorker>(1, TimeUnit.DAYS)
+                .setInitialDelay(computeInitialDelayForHour(h, m), TimeUnit.MILLISECONDS)
+                .build()
+            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+                "${WORK_HYDRATION}_$i",
+                ExistingPeriodicWorkPolicy.KEEP,
+                work,
+            )
+        }
+    }
+
+    /** Enchaîne tous les rappels standards. À appeler depuis RootViewModel après onboarding. */
+    fun scheduleAll() {
+        scheduleMorningWeighIn()
+        scheduleMonthlyMeasurement()
+        scheduleSessionNotLogged()
+        scheduleHydration()
+    }
+
     fun cancelAll() {
         val wm = WorkManager.getInstance(context)
         wm.cancelUniqueWork(WORK_MORNING_WEIGH_IN)
         wm.cancelUniqueWork(WORK_MONTHLY_MEASUREMENT)
+        wm.cancelUniqueWork(WORK_SESSION_NOT_LOGGED)
+        wm.cancelUniqueWork("${WORK_HYDRATION}_0")
+        wm.cancelUniqueWork("${WORK_HYDRATION}_1")
     }
 
     private fun computeInitialDelayForHour(hour: Int, minute: Int): Long {
@@ -77,5 +114,7 @@ class ReminderScheduler @Inject constructor(
     companion object {
         const val WORK_MORNING_WEIGH_IN = "morning_weigh_in"
         const val WORK_MONTHLY_MEASUREMENT = "monthly_measurement"
+        const val WORK_SESSION_NOT_LOGGED = "session_not_logged"
+        const val WORK_HYDRATION = "hydration"
     }
 }

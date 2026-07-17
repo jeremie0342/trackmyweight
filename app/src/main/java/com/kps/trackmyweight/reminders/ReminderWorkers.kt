@@ -15,8 +15,16 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.kps.trackmyweight.MainActivity
 import com.kps.trackmyweight.R
+import com.kps.trackmyweight.data.repository.HabitRepository
+import com.kps.trackmyweight.data.repository.NutritionRepository
+import com.kps.trackmyweight.data.repository.WorkoutRepository
+import com.kps.trackmyweight.domain.calc.ReminderPredicates
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.flow.first
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * Rappel matinal pour peser (planifié quotidiennement, fenêtre 6h-9h idéalement).
@@ -53,6 +61,59 @@ class MonthlyMeasurementReminderWorker @AssistedInject constructor(
     }
 
     companion object { const val NOTIF_ID = 1002 }
+}
+
+/**
+ * Rappel du soir si aucune séance n'a été loguée aujourd'hui.
+ */
+@HiltWorker
+class SessionNotLoggedReminderWorker @AssistedInject constructor(
+    @Assisted context: Context,
+    @Assisted params: WorkerParameters,
+    private val workoutRepo: WorkoutRepository,
+) : CoroutineWorker(context, params) {
+    override suspend fun doWork(): Result {
+        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val sessions = workoutRepo.observeRecentSessions(5).first()
+        val countToday = sessions.count { it.date == today }
+        if (ReminderPredicates.shouldRemindSessionNotLogged(countToday)) {
+            showNotification(
+                applicationContext, NOTIF_ID,
+                "Séance non loguée",
+                "As-tu fait ta séance aujourd'hui ? Ouvre l'app pour la loguer.",
+            )
+        }
+        return Result.success()
+    }
+
+    companion object { const val NOTIF_ID = 1003 }
+}
+
+/**
+ * Rappel hydratation si le total du jour est en-dessous du seuil attendu.
+ */
+@HiltWorker
+class HydrationReminderWorker @AssistedInject constructor(
+    @Assisted context: Context,
+    @Assisted params: WorkerParameters,
+    private val habitRepo: HabitRepository,
+    private val nutritionRepo: NutritionRepository,
+) : CoroutineWorker(context, params) {
+    override suspend fun doWork(): Result {
+        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val target = 2500
+        val ml = habitRepo.observeWaterMlForDate(today).first()
+        if (ReminderPredicates.shouldRemindHydration(ml, target)) {
+            showNotification(
+                applicationContext, NOTIF_ID,
+                "Hydratation en retard",
+                "Tu es à ${ml} ml / $target ml aujourd'hui. Un verre d'eau ?",
+            )
+        }
+        return Result.success()
+    }
+
+    companion object { const val NOTIF_ID = 1004 }
 }
 
 @SuppressLint("MissingPermission")

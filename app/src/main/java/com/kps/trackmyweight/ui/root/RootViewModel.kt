@@ -36,7 +36,6 @@ class RootViewModel @Inject constructor(
     }
 
     private fun scheduleReminders() {
-        reminderScheduler.scheduleMorningWeighIn()
-        reminderScheduler.scheduleMonthlyMeasurement()
+        reminderScheduler.scheduleAll()
     }
 }
