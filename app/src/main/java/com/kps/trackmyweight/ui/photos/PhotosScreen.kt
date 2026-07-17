@@ -42,7 +42,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
@@ -118,11 +120,32 @@ fun PhotosScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
-                Text(
-                    "Galerie — ${state.selectedAngle.label()}",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Galerie — ${state.selectedAngle.label()}",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    val ctxLocal = LocalContext.current
+                    val scopeLocal = rememberCoroutineScope()
+                    androidx.compose.material3.TextButton(onClick = {
+                        scopeLocal.launch {
+                            val file = vm.generateTimelapse()
+                            if (file != null) {
+                                val uri = androidx.core.content.FileProvider.getUriForFile(
+                                    ctxLocal, "${ctxLocal.packageName}.fileprovider", file
+                                )
+                                val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                    type = "video/mp4"
+                                    putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                ctxLocal.startActivity(android.content.Intent.createChooser(intent, "Partager le timelapse"))
+                            }
+                        }
+                    }) { Text("Timelapse") }
+                }
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(forAngle, key = { it.id }) { p ->
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {

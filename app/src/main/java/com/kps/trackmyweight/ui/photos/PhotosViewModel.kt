@@ -4,8 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kps.trackmyweight.data.db.entity.ProgressPhotoEntity
 import com.kps.trackmyweight.data.db.enums.PhotoAngle
+import com.kps.trackmyweight.data.photo.TimelapseEncoder
 import com.kps.trackmyweight.data.repository.PhotoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.io.File
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -31,6 +34,7 @@ data class PhotosUiState(
 @HiltViewModel
 class PhotosViewModel @Inject constructor(
     private val photoRepo: PhotoRepository,
+    private val encoder: TimelapseEncoder,
 ) : ViewModel() {
 
     private val _selectedAngle = MutableStateFlow(PhotoAngle.FRONT)
@@ -89,6 +93,18 @@ class PhotosViewModel @Inject constructor(
     }
 
     fun clearError() { _error.value = null }
+
+    /**
+     * Génère un MP4 timelapse pour l'angle sélectionné à partir de toutes les miniatures triées par date.
+     * Retourne le fichier ou null.
+     */
+    suspend fun generateTimelapse(): File? {
+        val forAngle = photoRepo.observeAll().first()
+            .filter { it.angle == _selectedAngle.value }
+            .sortedBy { it.date }
+        if (forAngle.size < 2) return null
+        return encoder.encode(forAngle.map { it.thumbnailPath })
+    }
 
     private fun todayLocal(): LocalDate =
         Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
