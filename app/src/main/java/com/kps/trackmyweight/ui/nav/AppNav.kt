@@ -25,6 +25,7 @@ import com.kps.trackmyweight.ui.gyms.GymsScreen
 import com.kps.trackmyweight.ui.home.HomeScreen
 import com.kps.trackmyweight.ui.measurements.MeasurementsScreen
 import com.kps.trackmyweight.ui.nutrition.NutritionScreen
+import com.kps.trackmyweight.ui.photos.CameraCaptureScreen
 import com.kps.trackmyweight.ui.photos.PhotosScreen
 import com.kps.trackmyweight.ui.reports.ReportsScreen
 import com.kps.trackmyweight.ui.settings.SettingsScreen
@@ -120,7 +121,12 @@ fun AppNavHost(
         }
         composable("weight") { WeightScreen() }
         composable("measurements") { MeasurementsScreen() }
-        composable("photos") { PhotosScreen() }
+        composable("photos") {
+            PhotosScreen(onOpenCamera = { navController.navigate("camera_capture") })
+        }
+        composable("camera_capture") {
+            CameraCaptureScreen(onDone = { navController.popBackStack() })
+        }
 
         composable(TopLevel.SETTINGS.route) {
             SettingsScreen(onOpenGyms = { navController.navigate("gyms") })

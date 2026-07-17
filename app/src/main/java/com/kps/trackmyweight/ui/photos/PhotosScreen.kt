@@ -54,7 +54,10 @@ import com.kps.trackmyweight.ui.common.ChoiceTile
 import java.io.File
 
 @Composable
-fun PhotosScreen(vm: PhotosViewModel = hiltViewModel()) {
+fun PhotosScreen(
+    onOpenCamera: () -> Unit = {},
+    vm: PhotosViewModel = hiltViewModel(),
+) {
     val state by vm.state.collectAsState()
     val context = LocalContext.current
     var pendingUri by remember { mutableStateOf<Uri?>(null) }
@@ -77,13 +80,10 @@ fun PhotosScreen(vm: PhotosViewModel = hiltViewModel()) {
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = {
-                    val file = File(context.cacheDir, "capture_${System.currentTimeMillis()}.jpg").apply { createNewFile() }
-                    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-                    pendingUri = uri
-                    takePicture.launch(uri)
+                    onOpenCamera()
                 },
                 icon = { Icon(Icons.Outlined.CameraAlt, null) },
-                text = { Text(if (state.isCapturing) "Sauvegarde..." else "Prendre") },
+                text = { Text(if (state.isCapturing) "Sauvegarde..." else "Prendre (overlay)") },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
             )
