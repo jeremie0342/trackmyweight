@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CameraAlt
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.FlipCameraAndroid
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -131,7 +132,7 @@ fun CameraCaptureScreen(
             modifier = Modifier.align(Alignment.TopStart).padding(8.dp),
         ) {
             Icon(
-                androidx.compose.material.icons.Icons.Outlined.Close,
+                Icons.Outlined.Close,
                 contentDescription = "Fermer",
                 tint = Color.White,
             )
