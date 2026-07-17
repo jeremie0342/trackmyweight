@@ -2,8 +2,11 @@ package com.kps.trackmyweight.reminders
 
 import android.content.Context
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.kps.trackmyweight.data.healthconnect.HealthConnectSyncWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
@@ -69,12 +72,35 @@ class ReminderScheduler @Inject constructor(
         }
     }
 
+    /** Sync Health Connect toutes les 12h. */
+    fun scheduleHealthConnectSync() {
+        val work = PeriodicWorkRequestBuilder<HealthConnectSyncWorker>(12, TimeUnit.HOURS)
+            .setInitialDelay(60, TimeUnit.SECONDS)
+            .build()
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+            WORK_HEALTH_CONNECT_SYNC,
+            ExistingPeriodicWorkPolicy.KEEP,
+            work,
+        )
+    }
+
+    /** Sync immédiate à la demande (bouton Settings). */
+    fun runHealthConnectSyncNow() {
+        val work = OneTimeWorkRequestBuilder<HealthConnectSyncWorker>().build()
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            "${WORK_HEALTH_CONNECT_SYNC}_oneshot",
+            ExistingWorkPolicy.REPLACE,
+            work,
+        )
+    }
+
     /** Enchaîne tous les rappels standards. À appeler depuis RootViewModel après onboarding. */
     fun scheduleAll() {
         scheduleMorningWeighIn()
         scheduleMonthlyMeasurement()
         scheduleSessionNotLogged()
         scheduleHydration()
+        scheduleHealthConnectSync()
     }
 
     fun cancelAll() {
@@ -116,5 +142,6 @@ class ReminderScheduler @Inject constructor(
         const val WORK_MONTHLY_MEASUREMENT = "monthly_measurement"
         const val WORK_SESSION_NOT_LOGGED = "session_not_logged"
         const val WORK_HYDRATION = "hydration"
+        const val WORK_HEALTH_CONNECT_SYNC = "health_connect_sync"
     }
 }

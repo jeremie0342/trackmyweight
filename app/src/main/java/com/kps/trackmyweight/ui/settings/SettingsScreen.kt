@@ -28,10 +28,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.health.connect.client.PermissionController
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kps.trackmyweight.data.backup.BackupService
+import com.kps.trackmyweight.data.healthconnect.HealthConnectManager
+import com.kps.trackmyweight.reminders.ReminderScheduler
 import com.kps.trackmyweight.ui.common.PrimaryButton
 import com.kps.trackmyweight.ui.common.SecondaryButton
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -44,15 +47,31 @@ import kotlinx.coroutines.launch
 data class SettingsUiState(
     val isBusy: Boolean = false,
     val lastMessage: String? = null,
+    val healthConnectGranted: Boolean = false,
 )
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val backupService: BackupService,
+    private val hcManager: HealthConnectManager,
+    private val reminderScheduler: ReminderScheduler,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SettingsUiState())
     val state: StateFlow<SettingsUiState> = _state.asStateFlow()
+
+    val healthConnectPermissions: Set<String> = hcManager.readPermissions
+    val healthConnectAvailable: Boolean get() = hcManager.isAvailable
+
+    suspend fun refreshHealthConnectStatus() {
+        val granted = hcManager.hasAllPermissions()
+        _state.value = _state.value.copy(healthConnectGranted = granted)
+    }
+
+    fun runHealthConnectSyncNow() {
+        reminderScheduler.runHealthConnectSyncNow()
+        _state.value = _state.value.copy(lastMessage = "Sync Health Connect lancée en tâche de fond.")
+    }
 
     suspend fun buildExportJson(): String = backupService.exportJson()
 
@@ -83,6 +102,14 @@ fun SettingsScreen(
     val state by vm.state.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    val hcPermissionsLauncher = rememberLauncherForActivityResult(
+        contract = PermissionController.createRequestPermissionResultContract(),
+    ) { granted ->
+        scope.launch { vm.refreshHealthConnectStatus() }
+    }
+
+    androidx.compose.runtime.LaunchedEffect(Unit) { vm.refreshHealthConnectStatus() }
 
     val createDoc = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         uri?.let {
@@ -133,6 +160,39 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+            }
+
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Health Connect", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (!vm.healthConnectAvailable) {
+                        Text(
+                            "Health Connect n'est pas disponible sur ce téléphone. Installe l'app Health Connect depuis le Play Store si tu veux importer poids/pas/sommeil automatiquement.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else if (!state.healthConnectGranted) {
+                        Text(
+                            "Autorise l'app à lire ton poids, tes pas et ton sommeil depuis Health Connect pour importer automatiquement les données de ta balance/montre connectée.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        PrimaryButton(
+                            text = "Autoriser Health Connect",
+                            onClick = { hcPermissionsLauncher.launch(vm.healthConnectPermissions) },
+                        )
+                    } else {
+                        Text(
+                            "Permissions accordées. Sync automatique toutes les 12h. Tu peux forcer une sync immédiate ci-dessous.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        SecondaryButton(text = "Sync maintenant", onClick = vm::runHealthConnectSyncNow)
+                    }
                 }
             }
 
