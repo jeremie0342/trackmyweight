@@ -1,33 +1,33 @@
 # Documentation & assets
 
-Ce dossier contient les captures d'écran, illustrations et documentation additionnelle du projet.
+This folder holds screenshots, illustrations and additional documentation for the project.
 
-## Contribuer une capture d'écran
+## Contributing a screenshot
 
-Les 6 captures manquantes du README principal sont :
+The 6 missing captures for the main README are:
 
-| Nom fichier attendu | Écran à capturer | Ce qu'il faut montrer |
+| Expected filename | Screen to capture | What to show |
 |---|---|---|
-| `screenshots/01-today.png` | Onglet **Aujourd'hui** | Carte readiness remplie + macros du jour + habitudes cochées |
-| `screenshots/02-workout.png` | Onglet **Séance** | Templates listés + PRs récents + historique |
-| `screenshots/03-nutrition.png` | Onglet **Nutrition** | Progression macros + un repas rempli avec 2-3 aliments |
-| `screenshots/04-body.png` | Onglet **Corps** | Hub avec 3 cartes Poids/Mensurations/Photos |
-| `screenshots/05-report.png` | Écran **Rapport hebdo** | Adhérence + narrative + coach advice visible |
-| `screenshots/06-widget.png` | Écran d'accueil Android | Widget avec dernière pesée + bouton "+ Ajouter" |
+| `screenshots/01-today.png` | **Today** tab | Filled readiness card + daily macros + a few habits checked |
+| `screenshots/02-workout.png` | **Workout** tab | Templates listed + recent PRs + history |
+| `screenshots/03-nutrition.png` | **Nutrition** tab | Macro progress + one meal with 2-3 items |
+| `screenshots/04-body.png` | **Body** tab | Hub with 3 cards (Weight / Measurements / Photos) |
+| `screenshots/05-report.png` | **Weekly report** screen | Adherence + narrative + a Coach advice visible |
+| `screenshots/06-widget.png` | Android home screen | Widget showing last weigh-in + the "+ Add" button |
 
-### Spécifications techniques
+### Technical spec
 
-- Format : PNG (préférable) ou JPEG à 90% qualité
-- Ratio : **portrait 9:19** ou natif de ton téléphone
-- Largeur cible : **1080 px** (redimensionner si supérieur)
-- Poids max : **500 Ko** par image
-- **Aucune info personnelle** visible (poids réel OK si tu assumes, mais pas de nom/email)
+- Format: PNG preferred (JPEG at 90% quality OK)
+- Ratio: **portrait 9:19** or your device's native ratio
+- Target width: **1080 px** (resize if larger)
+- Max size: **500 KB** per image
+- **No personal info** visible (a real weight is fine if you're OK with it, no name/email)
 
-### Comment capturer
+### How to capture
 
-**Depuis le téléphone** : bouton volume bas + power → recadrer si besoin → transférer par câble/cloud.
+**From the phone**: volume-down + power → crop if needed → transfer via cable/cloud.
 
-**Depuis un PC via ADB** :
+**From a PC via ADB**:
 
 ```bash
 adb shell screencap -p /sdcard/tmw.png
@@ -35,13 +35,13 @@ adb pull /sdcard/tmw.png
 adb shell rm /sdcard/tmw.png
 ```
 
-### Soumettre
+### Submit
 
-1. Fork le repo
-2. Ajoute tes captures dans `docs/screenshots/`
-3. Ouvre une PR avec la description "docs: add screenshot for [écran]"
+1. Fork the repo
+2. Add your captures under `docs/screenshots/`
+3. Open a PR with the description "docs: add screenshot for [screen name]"
 
-## Autres assets
+## Other assets
 
-- `logo/` — variantes du logo (à venir)
-- `press-kit/` — kit presse pour blogs/reviews (à venir)
+- `logo/` — logo variants (TBD)
+- `press-kit/` — press kit for blogs/reviews (TBD)

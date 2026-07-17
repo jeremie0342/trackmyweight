@@ -1,27 +1,27 @@
 name: Bug report
-description: Signaler un dysfonctionnement de l'application
+description: Report a malfunction in the app
 title: "[Bug] "
 labels: ["bug", "triage"]
 body:
   - type: markdown
     attributes:
       value: |
-        Merci de prendre le temps de signaler un bug. Plus tu fournis d'infos,
-        plus vite on peut le corriger.
+        Thanks for taking the time to file a bug. The more info you provide,
+        the faster we can fix it.
 
   - type: input
     id: app-version
     attributes:
-      label: Version de l'app
-      description: Visible dans _Plus → À propos_ ou dans le nom de l'APK téléchargé
-      placeholder: "v1.0.0-beta ou v0.1.53"
+      label: App version
+      description: Visible under _More → About_ or in the name of the APK you downloaded
+      placeholder: "v1.0.0-beta or v0.1.53"
     validations:
       required: true
 
   - type: input
     id: android-version
     attributes:
-      label: Modèle + version Android
+      label: Device model + Android version
       placeholder: "Samsung A54 · Android 14"
     validations:
       required: true
@@ -29,39 +29,39 @@ body:
   - type: textarea
     id: reproduction
     attributes:
-      label: Étapes pour reproduire
-      description: Le plus précis possible
+      label: Steps to reproduce
+      description: As precise as possible
       placeholder: |
-        1. Ouvrir l'onglet Nutrition
-        2. Rechercher "poulet"
-        3. Cliquer sur le premier résultat
-        4. Choisir mode "Paume", quantité 1
-        5. Cliquer Ajouter → l'app crash
+        1. Open the Nutrition tab
+        2. Search for "chicken"
+        3. Tap the first result
+        4. Pick portion mode "Palm", quantity 1
+        5. Tap Add → app crashes
     validations:
       required: true
 
   - type: textarea
     id: expected
     attributes:
-      label: Comportement attendu
+      label: Expected behavior
     validations:
       required: true
 
   - type: textarea
     id: observed
     attributes:
-      label: Comportement observé
+      label: Observed behavior
     validations:
       required: true
 
   - type: textarea
     id: logs
     attributes:
-      label: Logs (facultatif)
-      description: Si tu as un PC avec ADB, colle ici `adb logcat -d -s AndroidRuntime:E`
+      label: Logs (optional)
+      description: If you have a PC with ADB, paste `adb logcat -d -s AndroidRuntime:E` output here
       render: text
 
   - type: textarea
     id: screenshots
     attributes:
-      label: Captures d'écran (facultatif)
+      label: Screenshots (optional)

@@ -1,58 +1,58 @@
 # Security Policy
 
-## Versions supportées
+## Supported versions
 
-Seule la dernière release majeure reçoit des correctifs de sécurité. Le projet
-est en développement actif, met à jour vers la dernière version.
+Only the latest major release receives security fixes. The project is under
+active development — please update to the latest version.
 
-| Version | Supportée |
+| Version | Supported |
 |---------|-----------|
 | 1.x     | ✅        |
 | < 1.0   | ❌        |
 
-## Signaler une vulnérabilité
+## Reporting a vulnerability
 
-**Ne PAS ouvrir d'issue publique pour un problème de sécurité.**
+**Do NOT open a public issue for a security problem.**
 
-Envoie un rapport privé via un des canaux suivants :
+Send a private report through one of the following channels:
 
-1. **Preferred** : [GitHub Security Advisory](https://github.com/jeremie0342/trackmyweight/security/advisories/new)
-2. **Alternative** : DM au mainteneur principal sur GitHub (@jeremie0342)
+1. **Preferred**: [GitHub Security Advisory](https://github.com/jeremie0342/trackmyweight/security/advisories/new)
+2. **Alternative**: DM the main maintainer on GitHub (@jeremie0342)
 
-Inclus :
-- Description du problème et impact estimé
-- Version affectée
-- Étapes de reproduction
-- Suggestion de correctif si tu en as une
+Please include:
+- Description of the issue and estimated impact
+- Affected version
+- Reproduction steps
+- Suggested fix if you have one
 
-## Ce que tu peux attendre
+## What to expect
 
-- **Accusé de réception** sous 72h
-- **Évaluation initiale** sous 7 jours (impact, sévérité, plan de correction)
-- **Correctif** dans un délai raisonnable selon la sévérité :
-  - Critique : release patch sous 7 jours
-  - Élevée : sous 30 jours
-  - Moyenne : dans la prochaine release mineure
-  - Basse : dans la prochaine release majeure
-- **Crédit** dans le CHANGELOG et l'advisory publié après le fix (sauf si tu préfères rester anonyme)
+- **Acknowledgement** within 72 hours
+- **Initial assessment** within 7 days (impact, severity, remediation plan)
+- **Fix** within a reasonable timeframe based on severity:
+  - Critical: patch release within 7 days
+  - High: within 30 days
+  - Medium: in the next minor release
+  - Low: in the next major release
+- **Credit** in the CHANGELOG and the advisory published after the fix (unless you prefer to stay anonymous)
 
-## Périmètre
+## Scope
 
-L'application est **local-first** : toutes tes données restent sur ton téléphone.
-Les seuls composants réseau sont :
+The app is **local-first**: all your data stays on your phone. The only
+network-facing components are:
 
-- Health Connect (lecture uniquement, données Android sandbox)
-- Aucune API externe, aucune télémétrie, aucun analytics
+- Health Connect (read only, Android sandbox data)
+- No external APIs, no telemetry, no analytics
 
-Périmètre de sécurité :
+Security perimeter:
 
-- ✅ Chiffrement AES-256 des photos progression (Android Keystore)
-- ✅ Backup JSON exportable localement uniquement (pas d'upload auto cloud)
-- ✅ Aucune donnée envoyée à un serveur tiers
-- ✅ Permissions minimales (caméra opt-in, notifications opt-in, Health Connect opt-in)
+- ✅ AES-256 encryption of progress photos (Android Keystore)
+- ✅ JSON backup exportable locally only (no auto cloud upload)
+- ✅ No data sent to third-party servers
+- ✅ Minimal permissions (camera opt-in, notifications opt-in, Health Connect opt-in)
 
-## Hors périmètre
+## Out of scope
 
-- Vulnérabilités dans les dépendances tierces (Room, Compose, Hilt) — reporter directement à Google/JetBrains
-- Attaques nécessitant un accès physique déverrouillé au téléphone
-- Vulnérabilités OS Android en dehors de la sandbox de l'app
+- Vulnerabilities in third-party dependencies (Room, Compose, Hilt) — please report directly to Google/JetBrains
+- Attacks requiring physical unlocked access to the device
+- Android OS vulnerabilities outside the app's sandbox

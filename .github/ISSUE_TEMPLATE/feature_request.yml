@@ -1,51 +1,51 @@
 name: Feature request
-description: Proposer une nouvelle fonctionnalité ou amélioration
+description: Suggest a new feature or improvement
 title: "[Feature] "
 labels: ["enhancement", "triage"]
 body:
   - type: markdown
     attributes:
       value: |
-        Avant de proposer, vérifie qu'une issue similaire n'existe pas déjà,
-        et consulte la roadmap dans le README.
+        Before proposing, check that no similar issue already exists, and read
+        the roadmap in the README.
 
   - type: textarea
     id: problem
     attributes:
-      label: Quel problème résous-tu ?
-      description: Décris le besoin utilisateur, pas la solution.
-      placeholder: "Je perds du temps à chercher mes derniers records par exercice."
+      label: What problem does this solve?
+      description: Describe the user need, not the solution.
+      placeholder: "I waste time looking up my recent PRs by exercise."
     validations:
       required: true
 
   - type: textarea
     id: proposal
     attributes:
-      label: Solution proposée
-      description: Comment tu vois la fonctionnalité (mocks/wireframes bienvenus)
+      label: Proposed solution
+      description: How you envision the feature (mocks/wireframes welcome)
     validations:
       required: true
 
   - type: textarea
     id: alternatives
     attributes:
-      label: Alternatives envisagées
-      description: As-tu pensé à d'autres façons de résoudre ça ?
+      label: Alternatives considered
+      description: Have you thought of other ways to solve this?
 
   - type: dropdown
     id: complexity
     attributes:
-      label: Complexité estimée
+      label: Estimated complexity
       options:
-        - "Petit (< 1 jour de code)"
-        - "Moyen (2-5 jours)"
-        - "Gros (semaine+)"
-        - "Aucune idée"
+        - "Small (< 1 day of code)"
+        - "Medium (2-5 days)"
+        - "Large (a week+)"
+        - "No idea"
 
   - type: checkboxes
     id: contribute
     attributes:
       label: Contribution
       options:
-        - label: Je suis prêt·e à contribuer avec une PR
-        - label: J'ai besoin d'aide pour l'implémenter
+        - label: I'm willing to contribute a PR
+        - label: I need help implementing this

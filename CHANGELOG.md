@@ -1,88 +1,88 @@
 # Changelog
 
-Toutes les modifications notables de ce projet sont documentées dans ce fichier.
+All notable changes to this project are documented in this file.
 
-Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
-et le projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and the project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Non publié]
+## [Unreleased]
 
-### À venir
-- Widgets protéines du jour et prochaine séance
-- Import automatique de coach programs depuis PDF/photo
-- Traduction anglaise
+### Coming next
+- Widgets for daily protein and next scheduled session
+- Coach program import from PDF/photo
+- English UI translation
 
 ---
 
 ## [1.0.0-beta] — 2026-07-17
 
-Première release publique. L'application couvre l'intégralité du scope initial d'un
-assistant fitness/nutrition complet, en local-first, orienté cuisine béninoise et
-Afrique de l'Ouest.
+First public release. The application covers the full initial scope of a
+complete fitness/nutrition assistant, local-first, optimized for Benin and
+West African cuisine.
 
-### Ajouté
+### Added
 
-**Onboarding & profil**
-- Flow 7 étapes (identité, objectif, activité, salle, mode coach, récap)
-- Calcul auto BMR (Mifflin-St Jeor), TDEE, macros cibles selon phase
-- Audit équipement de salle avec 44 items pré-remplis
+**Onboarding & profile**
+- 7-step flow (identity, goal, activity level, gym, coach mode, recap)
+- Auto computation of BMR (Mifflin-St Jeor), TDEE, macro targets by phase
+- Gym equipment audit with 44 pre-filled items
 
-**Suivi corporel**
-- Écran Poids : saisie rapide, moyenne mobile 7j, projection linéaire, détection stagnation, IMC
-- Mensurations : 14 mesures + calcul auto Navy body fat + WHtR
-- Photos progression : capture CameraX avec silhouette overlay, comparaison slider, timelapse MP4
-- Widget écran d'accueil avec bouton "+ Ajouter une pesée" 1-tap
+**Body tracking**
+- Weight screen: quick entry, 7-day moving average, linear projection, stagnation detection, BMI
+- Measurements: 14 fields + auto Navy body fat % + WHtR
+- Progress photos: CameraX capture with silhouette overlay, comparison slider, MP4 timelapse
+- Home screen widget with "+ Add weigh-in" 1-tap button
 
-**Journal d'entraînement**
-- Bibliothèque de ~60 exercices avec équipements requis
-- Templates de séance éditables avec sets/reps cibles
-- Séance active avec auto-fill, chrono repos adaptatif, détection PR automatique
-- Voice input FR "12 reps à 80 kilos" via RecognizerIntent
-- Volume hebdo par groupe musculaire vs MEV/MAV/MRV
-- Cardio avec calcul kcal via table MET (10 activités)
-- Export texte des séances pour envoi au coach
+**Workout journal**
+- Library of ~60 exercises with required equipment
+- Editable session templates with sets/reps targets
+- Active session with auto-fill, adaptive rest timer, automatic PR detection
+- French voice input "12 reps à 80 kilos" via RecognizerIntent
+- Weekly volume per muscle group vs MEV/MAV/MRV
+- Cardio with MET-based kcal computation (10 activities)
+- Session text export for sending to coach
 
 **Nutrition**
-- Base alimentaire béninoise (~60 aliments : pâte, foutou, attiéké, wagashi, sauces, etc.)
-- 3 modes de log par repas : portions visuelles (poing/paume/pouce), grammes précis, favoris
-- Distribution protéines avec conseils qualitatifs
-- Cost per protein en FCFA
+- Benin food database (~60 items: pâte, foutou, attiéké, wagashi, sauces, etc.)
+- 3 stackable logging modes: visual portions (fist/palm/thumb), precise grams, favorites
+- Qualitative protein distribution advice
+- Cost per protein gram in FCFA
 
-**Habitudes & récupération**
-- Dashboard "Aujourd'hui" : readiness, poids, macros, sommeil, eau, habitudes, pouls
-- 7 habitudes par défaut avec streaks (CTE récursive SQL)
-- Sommeil, pas, eau, alcool séparés
-- Readiness score 4 dimensions (sommeil/énergie/courbatures/humeur)
+**Habits & recovery**
+- "Today" dashboard: readiness, weight, macros, sleep, water, habits, resting pulse
+- 7 default habits with streaks (recursive SQL CTE)
+- Sleep, steps, water, alcohol tracked separately
+- Readiness score across 4 dimensions (sleep/energy/soreness/mood)
 
-**Analytique & coaching**
-- Rapport hebdo : adhérence 6 signaux, narrative auto, projection non-linéaire, ETA
-- Coach Advisor avec 10 règles priorisées (refeed, deload, stagnation, protéines, sommeil)
-- Application automatique du refeed 7 jours
+**Analytics & coaching**
+- Weekly report: 6-signal weighted adherence, auto narrative, non-linear projection, ETA
+- Coach Advisor with 10 prioritized rules (refeed, deload, stagnation, protein, sleep)
+- One-tap application of 7-day refeed
 
-**Système**
-- Multi-salles avec switch actif
-- Health Connect : lecture auto poids/pas/sommeil (sync 12h)
-- Notifications : pesée matinale, mensurations mensuelles, séance non loguée (20h30), hydratation (14h/18h)
-- Backup JSON complet (export/import via System File Picker)
-- Thème Material You dynamique + dark-first
-- Navigation bottom 5 tabs (Aujourd'hui / Séance / Nutrition / Corps / Plus)
+**System**
+- Multi-gym with active switch
+- Health Connect: auto read of weight/steps/sleep (12h sync)
+- Notifications: morning weigh-in, monthly measurements, session not logged (8:30 PM), hydration (2 PM / 6 PM)
+- Full JSON backup (export/import via System File Picker)
+- Dynamic Material You theme + dark-first
+- Bottom navigation with 5 tabs (Today / Workout / Nutrition / Body / More)
 
 **Data layer**
-- Room 2.6 avec 45 entités
-- FTS4 pour recherche aliments insensible aux accents
-- SQLCipher-ready (à activer via config Room)
-- Photos chiffrées AES-256 via Android Keystore
+- Room 2.6 with 45 entities
+- FTS4 for accent-insensitive food search
+- SQLCipher-ready (activatable via Room config)
+- AES-256 encrypted photos via Android Keystore
 
 **Tests & CI**
-- ~137 tests JVM (business logic pure)
-- Tests instrumentés Room + Compose (émulateur en CI en `continue-on-error`)
-- Build APK signé automatique à chaque push sur main
-- Distribution automatique via GitHub Releases
+- ~137 JVM tests (pure business logic)
+- Room + Compose instrumented tests (emulator in CI as `continue-on-error`)
+- Signed APK build automatic on every push to main
+- Automatic distribution via GitHub Releases
 
-### Détails techniques
+### Technical details
 - **minSdk** 26 (Android 8.0)
 - **targetSdk** 35 (Android 15)
 - **Kotlin** 2.1.0, **Compose** BOM 2024.12
 - **Hilt** DI, **KSP** annotation processing
-- **Vico** (unused), **Coil** image loading, **CameraX** 1.4
+- **Coil** image loading, **CameraX** 1.4
 - **Health Connect** 1.1

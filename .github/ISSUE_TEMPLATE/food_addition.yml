@@ -1,20 +1,20 @@
-name: Ajout d'aliment à la base
-description: Proposer un aliment manquant (Bénin, Afrique, autre région francophone)
+name: Add a food to the database
+description: Propose a missing food (Benin, Africa, or any region)
 title: "[Food] "
 labels: ["food-database", "help-wanted"]
 body:
   - type: input
     id: name
     attributes:
-      label: Nom de l'aliment
-      placeholder: "Yassa poulet"
+      label: Food name
+      placeholder: "Yassa chicken"
     validations:
       required: true
 
   - type: dropdown
     id: region
     attributes:
-      label: Région
+      label: Region
       options:
         - "BENIN"
         - "WEST_AFRICA"
@@ -25,7 +25,7 @@ body:
   - type: dropdown
     id: category
     attributes:
-      label: Catégorie
+      label: Category
       options:
         - "GRAIN"
         - "PROTEIN_ANIMAL"
@@ -51,29 +51,29 @@ body:
   - type: input
     id: protein
     attributes:
-      label: Protéines / 100g (g)
+      label: Protein / 100g (g)
     validations:
       required: true
 
   - type: input
     id: carbs
     attributes:
-      label: Glucides / 100g (g)
+      label: Carbs / 100g (g)
     validations:
       required: true
 
   - type: input
     id: fats
     attributes:
-      label: Lipides / 100g (g)
+      label: Fats / 100g (g)
     validations:
       required: true
 
   - type: input
     id: serving
     attributes:
-      label: Portion typique
-      placeholder: "1 assiette (200 g)"
+      label: Typical serving
+      placeholder: "1 plate (200 g)"
     validations:
       required: true
 
@@ -81,6 +81,6 @@ body:
     id: source
     attributes:
       label: Sources
-      description: Cite la table de référence (FAO West Africa, CIQUAL, INRAN, etc.)
+      description: Cite the reference table (FAO West Africa, CIQUAL, INRAN, etc.)
     validations:
       required: true

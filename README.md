@@ -1,10 +1,10 @@
 # TrackMyWeight
 
-**Assistant fitness & nutrition Android — local-first, orienté Bénin / Afrique de l'Ouest.**
+**Local-first fitness & nutrition tracker for Android — optimized for Benin / West African cuisine.**
 
-Une app tout-en-un pour piloter une transformation physique : poids, mensurations, photos, journal d'entraînement, nutrition adaptée aux aliments locaux, habitudes, récupération, rapport hebdomadaire avec coaching algorithmique.
+An all-in-one app to drive a physical transformation: weight, measurements, photos, workout log, nutrition adapted to local foods, habits, recovery, weekly report with algorithmic coaching.
 
-Aucune donnée n'est envoyée sur un serveur. Tout reste sur ton téléphone, avec import optionnel depuis Health Connect et backup manuel JSON vers ton cloud personnel.
+No data is ever sent to a server. Everything stays on your phone, with optional Health Connect sync and manual JSON backup to your own cloud.
 
 [![Build & Release](https://github.com/jeremie0342/trackmyweight/actions/workflows/android-build.yml/badge.svg)](https://github.com/jeremie0342/trackmyweight/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -12,191 +12,193 @@ Aucune donnée n'est envoyée sur un serveur. Tout reste sur ton téléphone, av
 [![Min SDK](https://img.shields.io/badge/minSdk-26-green.svg)](https://developer.android.com/about/versions/oreo)
 [![Release](https://img.shields.io/github/v/release/jeremie0342/trackmyweight?include_prereleases)](https://github.com/jeremie0342/trackmyweight/releases/latest)
 
+> **Note on language:** the app's UI is currently in French. English translation is planned (see roadmap). Documentation, code, and contribution process are in English to welcome global contributors.
+
 ---
 
-## Pourquoi cette app
+## Why this app
 
-La plupart des trackers fitness assument un utilisateur occidental avec balance connectée, montre haut de gamme, et cuisine standardisée. Cette app est pensée pour :
+Most fitness trackers assume a Western user with a smart scale, a high-end watch, and standardized food. This app is built for:
 
-- 📱 Un téléphone Android sans accessoires obligatoires
-- 🥘 Une base d'aliments locaux (pâte, foutou, attiéké, wagashi, sauces arachide/gombo/feuille, poulet bicyclette, tilapia, kluiklui, bissap, etc.)
-- 💰 Un budget contraint (calcul auto du coût par gramme de protéine en FCFA)
-- 🏋️ Un usage salle de sport quotidien avec matériel variable
-- 👨‍🏫 La cohabitation avec un coach humain (mode passif qui logue sans contredire)
-- ⚡ Un usage pur local-first, sans compte, sans télémétrie, sans pub
+- 📱 An Android phone with no mandatory accessories
+- 🥘 A local food database (pâte, foutou, attiéké, wagashi, peanut/gombo/leaf sauces, free-range chicken, tilapia, kluiklui, bissap, etc.)
+- 💰 A budget-conscious user (auto cost per gram of protein in FCFA)
+- 🏋️ Daily gym use with variable equipment
+- 👨‍🏫 Coexistence with a human coach (passive mode that logs without contradicting)
+- ⚡ Pure local-first — no account, no telemetry, no ads
 
 ## Screenshots
 
-Les captures officielles seront ajoutées dans `docs/screenshots/`. Voir [docs/README.md](docs/README.md) pour contribuer.
+Official captures will be added under `docs/screenshots/`. See [docs/README.md](docs/README.md) to contribute.
 
-| Aujourd'hui | Séance | Nutrition |
-|-------------|--------|-----------|
-| _à venir_   | _à venir_ | _à venir_ |
+| Today | Workout | Nutrition |
+|-------|---------|-----------|
+| _tbd_ | _tbd_ | _tbd_ |
 
-| Corps | Rapport hebdo | Widget |
-|-------|---------------|--------|
-| _à venir_ | _à venir_ | _à venir_ |
+| Body | Weekly report | Widget |
+|------|---------------|--------|
+| _tbd_ | _tbd_ | _tbd_ |
 
-## Fonctionnalités
+## Features
 
-### Suivi corporel
-- Pesée quotidienne avec **graphique + moyenne mobile 7j + projection linéaire**
-- Widget écran d'accueil avec bouton **+ Ajouter une pesée** 1-tap
-- Mensurations 14 mesures + calcul auto **% masse grasse méthode Navy** (pas d'impédancemètre requis)
-- Photos de progression avec **overlay silhouette** de la dernière photo pour aligner
-- **Timelapse MP4** généré à la demande, partageable
-- Ratios santé WHtR / WHR
-- Détection auto de **stagnation** (14 jours sans progression)
+### Body tracking
+- Daily weigh-in with **chart + 7-day moving average + linear projection**
+- Home screen widget with **+ Add weigh-in** 1-tap button
+- 14-field measurements + auto **Navy method body fat %** (no impedance scale required)
+- Progress photos with **silhouette overlay** of your last shot for alignment
+- **MP4 timelapse** generated on demand, shareable
+- Health ratios (WHtR, WHR)
+- Auto **stagnation detection** (14 days without progress)
 
-### Journal d'entraînement
-- Bibliothèque de **~60 exercices** avec muscles primaires/secondaires + équipement requis
-- Filtrage auto selon **l'équipement de ta salle** (multi-salles supportées)
-- Templates de séance avec **rotation** (ex : lundi bras/jambes alterné)
-- Séance active : **auto-fill** de la dernière perf, chrono repos adaptatif (compound 3min / isolation 90s)
-- **Détection automatique de PR** (max weight, 1RM estimé Epley/Brzycki, max reps à un poids donné)
-- **Volume hebdo par groupe musculaire** vs landmarks MEV/MAV/MRV (Renaissance Periodization)
-- **Voice input FR** : "12 reps à 80 kilos" → champs auto-remplis
-- Cardio : 9 activités avec **calcul kcal via table MET** modulé par RPE
-- **Export texte** pour envoi au coach
+### Workout journal
+- Library of **~60 exercises** with primary/secondary muscles + equipment
+- Auto-filtering by **your gym's equipment** (multi-gym supported)
+- Session templates with **rotation** (e.g. Monday arms/legs alternating)
+- Active session: **auto-fill** last performance, adaptive rest timer (compound 3min / isolation 90s)
+- **Automatic PR detection** (max weight, estimated 1RM Epley/Brzycki, max reps at a given weight)
+- **Weekly volume per muscle group** vs MEV/MAV/MRV landmarks (Renaissance Periodization)
+- **French voice input**: "12 reps à 80 kilos" → fields auto-filled
+- Cardio: 9 activities with **MET-based kcal estimation** modulated by RPE
+- **Text export** to send to your coach
 
 ### Nutrition
-- Base alimentaire **béninoise** (~60 aliments) + **internationale**
-- **3 modes de log par repas cumulables** :
-  - Portions visuelles (poing, paume, pouce, louche, cuillère)
-  - Grammes précis (pour les curieux)
-  - Repas favoris 1-tap
-- Compteur **protéines + calories quotidien** vs cible personnalisée
-- **Distribution protéines** dans la journée avec conseils qualitatifs
-- Suivi fibres, sodium, alcool séparé
-- **Prix par gramme de protéine en FCFA** — classe automatiquement tes aliments par ratio économique
-- Phases de régime : **cut / recomp / bulk / maintenance / refeed / diet break**
-- **Adaptation calorique automatique** selon la tendance réelle du poids
+- **Benin food database** (~60 items) + **international staples**
+- **3 stackable logging modes** per meal:
+  - Visual portions (fist, palm, thumb, ladle, spoon)
+  - Precise grams (for the curious)
+  - Favorite meals 1-tap
+- Daily **protein + calorie counter** vs personalized target
+- **Protein distribution** across meals with qualitative advice
+- Fiber, sodium, alcohol tracked separately
+- **Cost per gram of protein in FCFA** — auto-ranks your foods by value
+- Diet phases: **cut / recomp / bulk / maintenance / refeed / diet break**
+- **Automatic calorie adaptation** based on your actual weight trend
 
-### Habitudes & récupération
-- Dashboard "Aujourd'hui" avec cartes readiness, poids, macros, sommeil, eau, habitudes, pouls
-- **7 habitudes par défaut** (pesée matinale, créatine, 10k pas, 2L eau, sommeil ≥7h, étirements, sans alcool)
-- **Streaks** en jours consécutifs (SQL récursif)
-- **Check-in readiness matinal** 15s (sommeil/énergie/courbatures/humeur → score 0-5 avec conseil)
-- Compteur d'eau avec presets 250/500/750/1000 ml
+### Habits & recovery
+- "Today" dashboard with cards for readiness, weight, macros, sleep, water, habits, resting pulse
+- **7 default habits** (morning weigh-in, creatine, 10k steps, 2L water, sleep ≥7h, stretching, no alcohol)
+- **Streaks** in consecutive days (recursive SQL CTE)
+- **Morning readiness check-in** — 15 seconds (sleep/energy/soreness/mood → 0-5 score with advice)
+- Water counter with 250/500/750/1000 ml presets
 
-### Analytique & coaching
-- **Rapport hebdomadaire** : adhérence pondérée sur 6 signaux, narrative auto, projection non-linéaire vers l'objectif avec ETA
-- **Coach Advisor** avec 10 règles priorisées :
-  - Semaine de refeed auto-suggérée après 8 semaines de cut
-  - Deload si readiness moyen < 2.5/5
-  - Ajustement calories si stagnation > 14j ou perte > 0.9kg/sem
-  - Volume au-dessus du MRV par muscle
-  - Sommeil insuffisant
-- **Application automatique** du refeed 7 jours d'un tap
+### Analytics & coaching
+- **Weekly report**: adherence weighted across 6 signals, auto narrative, non-linear projection toward goal with ETA
+- **Coach Advisor** with 10 prioritized rules:
+  - Auto-suggested refeed week after 8 weeks in cut
+  - Deload if average readiness < 2.5/5
+  - Calorie adjustment on stagnation > 14d or loss > 0.9kg/week
+  - Volume above MRV per muscle group
+  - Insufficient sleep
+- **One-tap application** of a 7-day refeed
 
-### Système
-- **Health Connect** : lecture auto poids / pas / sommeil toutes les 12h (opt-in)
-- **Backup / restore complet en JSON** — export vers Drive/iCloud/USB
-- **Notifications intelligentes** contextuelles (pesée matin, hydratation, séance non loguée)
-- Multi-salles avec switch actif
-- Thème **Material You** dynamique + dark-first
-- **Photos chiffrées AES-256** via Android Keystore
-- **Zéro compte, zéro télémétrie, zéro cloud**
+### System
+- **Health Connect**: auto read of weight / steps / sleep every 12h (opt-in)
+- **Full JSON backup / restore** — export to Drive/iCloud/USB
+- **Context-aware notifications** (morning weigh-in, hydration, session not logged)
+- Multi-gym with active switch
+- **Material You** dynamic theme + dark-first
+- **AES-256 encrypted photos** via Android Keystore
+- **Zero account, zero telemetry, zero cloud**
 
 ## Installation
 
-### Utilisateur final
+### End user
 
-1. Va sur la [page Releases](https://github.com/jeremie0342/trackmyweight/releases/latest)
-2. Télécharge l'APK `trackmyweight-vX.X.X.apk`
-3. Autorise les sources inconnues dans les paramètres Chrome/Firefox de ton téléphone
-4. Ouvre l'APK depuis les téléchargements et installe
+1. Go to the [Releases page](https://github.com/jeremie0342/trackmyweight/releases/latest)
+2. Download the APK `trackmyweight-vX.X.X.apk`
+3. Allow unknown sources in your browser's Android settings
+4. Open the APK from Downloads and install
 
-Les mises à jour futures remplaceront l'app sans effacer tes données (signature stable).
+Future updates will replace the app without wiping your data (stable signature).
 
-### Développeur
+### Developer
 
-Prérequis : **JDK 17** + **Android SDK** (via Android Studio ou command-line tools).
+Prerequisites: **JDK 17** + **Android SDK** (via Android Studio or command-line tools).
 
 ```bash
 git clone https://github.com/jeremie0342/trackmyweight.git
 cd trackmyweight
 ./gradlew assembleDebug
-# APK dans app/build/outputs/apk/debug/
+# APK at app/build/outputs/apk/debug/
 ```
 
-Installation sur téléphone via ADB :
+Install on phone via ADB:
 
 ```bash
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-### Build sans PC puissant (via CI cloud)
+### Building without a powerful PC (cloud CI)
 
-Le projet est configuré pour compiler entièrement dans GitHub Actions.
-Détails du setup dans [CONTRIBUTING.md](CONTRIBUTING.md#setup-développement).
+The project is configured to build entirely in GitHub Actions.
+See [CONTRIBUTING.md](CONTRIBUTING.md#development-setup) for the full setup.
 
-## Stack technique
+## Tech stack
 
 - **Kotlin** 2.1 + **Jetpack Compose** (BOM 2024.12) + **Material 3**
-- **Room** 2.6 (FTS4 pour recherche aliments, ~45 entités, migrations testées)
+- **Room** 2.6 (FTS4 for accent-insensitive food search, ~45 entities, tested migrations)
 - **Hilt** 2.53 (DI)
-- **WorkManager** (rappels et sync périodique)
+- **WorkManager** (reminders and periodic sync)
 - **Health Connect** 1.1
-- **CameraX** 1.4 (capture custom avec overlay Compose)
+- **CameraX** 1.4 (custom capture with Compose overlay)
 - **Coil** (image loading)
-- **kotlinx-serialization** (backup JSON)
-- **MediaCodec + MediaMuxer** (encodage timelapse H.264)
-- **Android Keystore** (chiffrement photos)
+- **kotlinx-serialization** (JSON backup)
+- **MediaCodec + MediaMuxer** (H.264 timelapse encoding)
+- **Android Keystore** (photo encryption)
 
-Architecture : MVI léger avec ViewModels + StateFlow, repositories par domaine, use cases pour la logique métier (dans `domain/calc`), tout offline.
+Architecture: lightweight MVI with ViewModels + StateFlow, domain-scoped repositories, use cases for business logic (under `domain/calc`), all offline.
 
 ## Roadmap
 
-Priorités court terme :
-- 🌍 Traduction anglaise
-- 📸 Screenshots officiels dans le README
-- 🎨 Iconographie personnalisée
-- 📊 Widgets protéines du jour + prochaine séance
+Short term:
+- 🌍 English UI translation
+- 📸 Official README screenshots
+- 🎨 Custom iconography
+- 📊 Widgets for daily protein + next session
 
-Moyen terme :
-- 📥 Import de programmes coach depuis PDF/photo (OCR)
-- 🔄 Sync multi-device via Turso/PowerSync (opt-in)
-- 🏆 Achievements & progression visuelle
-- 📈 Vue mensuelle / annuelle
-- 💬 Coach IA local via petit LLM on-device (Gemma 2B)
+Mid term:
+- 📥 Import coach programs from PDF/photo (OCR)
+- 🔄 Multi-device sync via Turso/PowerSync (opt-in)
+- 🏆 Achievements & visual progression
+- 📈 Monthly / annual views
+- 💬 Local AI coach via small on-device LLM (Gemma 2B)
 
-Ce qui ne sera **pas** ajouté :
-- Compte utilisateur / cloud obligatoire
-- Publicité, télémétrie, analytics
-- Achats in-app
-- Fonctions sociales
+What will **never** be added:
+- Mandatory account / cloud
+- Advertising, telemetry, analytics
+- In-app purchases
+- Social features
 
-## Contribuer
+## Contributing
 
-Les contributions sont les bienvenues, particulièrement :
+Contributions welcome, especially:
 
-- 🥘 Ajout d'aliments locaux (Bénin, Sénégal, Côte d'Ivoire, Togo, autres)
-- 🏋️ Ajout d'exercices ou variantes
-- 🐛 Bug reports détaillés
-- 🌍 Traductions
+- 🥘 Local food additions (Benin, Senegal, Ivory Coast, Togo, others)
+- 🏋️ New exercises or variants
+- 🐛 Detailed bug reports
+- 🌍 Translations
 
-Consulte [CONTRIBUTING.md](CONTRIBUTING.md) pour le processus complet. Assure-toi de respecter le [Code de Conduite](CODE_OF_CONDUCT.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full process. Please respect the [Code of Conduct](CODE_OF_CONDUCT.md).
 
-Pour reporter une vulnérabilité de sécurité, voir [SECURITY.md](SECURITY.md).
+To report a security vulnerability, see [SECURITY.md](SECURITY.md).
 
-## Remerciements
+## Acknowledgements
 
-Ce projet repose sur les épaules de géants :
+This project stands on the shoulders of giants:
 
 - **Google Jetpack** (Compose, Room, Hilt, Health Connect, CameraX, WorkManager, Glance)
 - **JetBrains** (Kotlin, kotlinx-coroutines, kotlinx-datetime, kotlinx-serialization)
-- **Coil** pour le chargement d'images
-- **Tables FAO West Africa** pour les valeurs nutritionnelles des aliments locaux
-- **Renaissance Periodization / Dr. Mike Israetel** pour les landmarks MEV/MAV/MRV
-- **Contributor Covenant** pour le Code de Conduite
+- **Coil** for image loading
+- **FAO West Africa food composition tables** for local nutritional values
+- **Renaissance Periodization / Dr. Mike Israetel** for MEV/MAV/MRV landmarks
+- **Contributor Covenant** for the Code of Conduct
 
-Un merci particulier à toute personne qui teste, remonte des bugs, propose des aliments locaux, ou contribue une ligne de code.
+Special thanks to anyone who tests, reports bugs, suggests local foods, or contributes a line of code.
 
-## Licence
+## License
 
-Ce projet est distribué sous licence [MIT](LICENSE) — libre d'usage, de modification et de redistribution, y compris commercial. Aucune garantie.
+Distributed under the [MIT license](LICENSE) — free to use, modify, and redistribute, including commercially. No warranty.
 
 ---
 
-**TrackMyWeight** — bâti pour être utilisé, pas pour être un business.
+**TrackMyWeight** — built to be used, not to be a business.

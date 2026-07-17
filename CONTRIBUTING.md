@@ -1,106 +1,106 @@
 # Contributing to TrackMyWeight
 
-Merci de ton intérêt ! Cette page décrit comment contribuer efficacement.
+Thanks for your interest! This page describes how to contribute effectively.
 
-## Types de contributions bienvenues
+## Welcome contributions
 
-- 🐛 **Bug reports** avec étapes de reproduction précises
-- 💡 **Suggestions de features** (voir la roadmap dans le README avant)
-- 📖 **Améliorations de documentation** (README, commentaires, exemples)
-- 🥘 **Ajout d'aliments** à la base (Bénin, Afrique de l'Ouest, autres régions francophones)
-- 🏋️ **Ajout d'exercices** à la bibliothèque
-- 🌍 **Traductions** (l'app est actuellement en français uniquement)
-- ✅ **Tests** supplémentaires (JVM ou instrumentés)
-- 🎨 **Améliorations UI/UX**
-- 🔧 **Refactorings** ciblés (attention aux gros PRs sans discussion préalable)
+- 🐛 **Bug reports** with precise reproduction steps
+- 💡 **Feature suggestions** (check the roadmap in the README first)
+- 📖 **Documentation improvements** (README, code comments, examples)
+- 🥘 **Food additions** to the database (Benin, West Africa, other regions)
+- 🏋️ **New exercises** in the library
+- 🌍 **Translations** (the app is currently French-only)
+- ✅ **Additional tests** (JVM or instrumented)
+- 🎨 **UI/UX improvements**
+- 🔧 **Focused refactors** (avoid large refactors without prior discussion)
 
-## Setup développement
+## Development setup
 
-### Prérequis
+### Prerequisites
 
-- **JDK 17** (Temurin recommandé)
-- **Android SDK** (via Android Studio ou command-line tools)
+- **JDK 17** (Temurin recommended)
+- **Android SDK** (via Android Studio or command-line tools)
 - **Git**
 
-### Sans Android Studio (PC peu puissant)
+### Without Android Studio (low-spec PC)
 
-Tout le build peut se faire dans le cloud via GitHub Actions :
+All builds can happen in the cloud via GitHub Actions:
 
-1. Fork le repo sur GitHub
-2. Clone en local : `git clone git@github.com:<toi>/trackmyweight.git`
-3. Édite avec ton IDE léger préféré (VS Code + extension Kotlin, IntelliJ Community, Zed)
-4. Configure les 4 secrets GitHub Actions du fork (voir README section _Setup une seule fois_)
-5. Push → APK compilé automatiquement dans les Releases
+1. Fork the repo on GitHub
+2. Clone locally: `git clone git@github.com:<you>/trackmyweight.git`
+3. Edit with your favorite lightweight IDE (VS Code + Kotlin extension, IntelliJ Community, Zed)
+4. Configure the 4 GitHub Actions secrets on your fork (see `docs/CI_SETUP.md` — coming soon; for now generate a debug keystore and set `DEBUG_KEYSTORE_BASE64`, `DEBUG_KEYSTORE_PASSWORD=android`, `DEBUG_KEY_ALIAS=androiddebugkey`, `DEBUG_KEY_PASSWORD=android`)
+5. Push → APK is built automatically and published to Releases
 
-### Avec Android Studio
+### With Android Studio
 
 ```bash
-git clone git@github.com:<toi>/trackmyweight.git
+git clone git@github.com:<you>/trackmyweight.git
 cd trackmyweight
-# Ouvre le dossier dans Android Studio, laisse-le sync
+# Open the folder in Android Studio and let it sync
 ./gradlew assembleDebug
 ```
 
-## Workflow PR
+## PR workflow
 
-1. **Discussion d'abord** pour les features > 100 lignes de code — ouvre une issue "Proposal" avant de coder
-2. **Branche** : `feat/short-name`, `fix/bug-description`, `docs/what`, `test/scope`
-3. **Commits atomiques** avec messages descriptifs (impératif, en anglais ou français)
-4. **Tests obligatoires** :
-   - Nouveau code métier → tests JVM dans `src/test/`
-   - Nouvelle query Room → test instrumenté dans `src/androidTest/`
-5. **CI verte** : les tests JVM + build APK doivent passer
-6. **PR description** : contexte du problème, solution, screenshots si UI
+1. **Discuss first** for features > 100 lines of code — open a "Proposal" issue before coding
+2. **Branch naming**: `feat/short-name`, `fix/bug-description`, `docs/what`, `test/scope`
+3. **Atomic commits** with descriptive messages (imperative mood, English preferred)
+4. **Tests required**:
+   - New business logic → JVM tests in `src/test/`
+   - New Room query → instrumented test in `src/androidTest/`
+5. **Green CI**: JVM tests + APK build must pass
+6. **PR description**: problem context, solution, screenshots if UI
 
-## Style de code
+## Code style
 
-- Kotlin idiomatique — évite les getters manuels, les null checks défensifs superflus
-- Compose : composables privés pour les sous-parties, pas de logique métier dans les screens
-- Nommage : anglais pour le code, français OK pour les UI strings et commentaires métier
-- Formatage : Android Studio default (Kotlin style)
-- **Pas d'emoji** dans le code ni les UI strings
-- **Pas de commentaires évidents** — le code doit se suffire
+- Idiomatic Kotlin — avoid manual getters, unnecessary defensive null checks
+- Compose: private composables for sub-parts, no business logic in screens
+- Naming: English for code, French acceptable for UI strings and domain comments
+- Formatting: Android Studio default (Kotlin style)
+- **No emoji** in code or UI strings
+- **No obvious comments** — the code should speak for itself
 
-## Ajouter un aliment à la base
+## Adding a food to the database
 
-Ouvre `app/src/main/java/com/kps/trackmyweight/data/seed/FoodSeed.kt` et ajoute une ligne :
+Open `app/src/main/java/com/kps/trackmyweight/data/seed/FoodSeed.kt` and add a line:
 
 ```kotlin
-food("Nom local", FoodCategory.PROTEIN_ANIMAL, FoodRegion.BENIN,
+food("Local name", FoodCategory.PROTEIN_ANIMAL, FoodRegion.BENIN,
     kcal = 165f, prot = 27f, carb = 0f, fat = 6f, fiber = 0f,
     servingG = 150f, servingLabel = "1 portion", now = now),
 ```
 
-Cite tes sources dans la description du PR (tables FAO, CIQUAL, INRAN, etc.).
+Cite your sources in the PR description (FAO tables, CIQUAL, INRAN, etc.).
 
-## Ajouter un exercice
+## Adding an exercise
 
-Idem dans `ExerciseSeed.kt`. Format :
+Same in `ExerciseSeed.kt`. Format:
 
 ```kotlin
-ex("slug_unique", "Nom affiché", MuscleGroup.PRIMARY, listOf(MuscleGroup.SECONDARY),
+ex("unique_slug", "Display name", MuscleGroup.PRIMARY, listOf(MuscleGroup.SECONDARY),
     ExerciseMechanics.COMPOUND, ExerciseForce.PUSH, listOf("equipment_slug"), now),
 ```
 
-Les slugs d'équipement doivent exister dans `EquipmentSeed.kt`.
+Equipment slugs must exist in `EquipmentSeed.kt`.
 
 ## Reporting a bug
 
-Ouvre une issue avec le template "Bug report". Inclus :
-- Version de l'app (visible dans Settings)
-- Modèle de téléphone + version Android
-- Étapes reproductibles
-- Comportement attendu vs observé
-- Logs (`adb logcat -s TrackMyWeight` si tu as un PC)
+Open an issue using the "Bug report" template. Include:
+- App version (visible in Settings)
+- Phone model + Android version
+- Reproducible steps
+- Expected vs observed behavior
+- Logs (`adb logcat -s TrackMyWeight` if you have a PC)
 
 ## Reporting a security vulnerability
 
-**Ne pas ouvrir d'issue publique.** Voir `SECURITY.md`.
+**Do not open a public issue.** See `SECURITY.md`.
 
 ## Code of Conduct
 
-Ce projet suit le [Contributor Covenant](CODE_OF_CONDUCT.md). Sois respectueux, constructif, patient.
+This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md). Be respectful, constructive, patient.
 
-## Licence
+## License
 
-En contribuant, tu acceptes que ta contribution soit publiée sous la licence MIT du projet.
+By contributing, you agree that your contribution is released under the project's MIT license.

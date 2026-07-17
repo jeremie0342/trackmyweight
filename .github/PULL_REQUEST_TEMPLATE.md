@@ -1,45 +1,45 @@
 <!--
-Merci pour ta contribution ! Remplis les sections applicables.
-Supprime celles qui ne s'appliquent pas.
+Thanks for your contribution! Fill in the applicable sections.
+Delete the ones that don't apply.
 -->
 
-## Résumé
+## Summary
 
-<!-- 1-2 phrases décrivant ce que ce PR change et pourquoi. -->
+<!-- 1-2 sentences describing what this PR changes and why. -->
 
-## Type de changement
+## Type of change
 
 - [ ] 🐛 Bug fix (non-breaking)
-- [ ] ✨ Nouvelle feature (non-breaking)
-- [ ] 💥 Breaking change (fix ou feature qui modifie un comportement existant)
+- [ ] ✨ New feature (non-breaking)
+- [ ] 💥 Breaking change (fix or feature that alters existing behavior)
 - [ ] 📖 Documentation
-- [ ] 🎨 Style / refactoring (pas de changement fonctionnel)
+- [ ] 🎨 Style / refactor (no functional change)
 - [ ] 🧪 Tests
-- [ ] 🥘 Ajout d'aliment(s) à la base
-- [ ] 🏋️ Ajout d'exercice(s) à la bibliothèque
+- [ ] 🥘 Food(s) added to the database
+- [ ] 🏋️ Exercise(s) added to the library
 
-## Issue liée
+## Linked issue
 
 Fixes #
 
-## Comment tester
+## How to test
 
-<!-- Étapes précises pour reproduire et valider le comportement. -->
+<!-- Precise steps to reproduce and validate the behavior. -->
 
 1. …
 2. …
 
-## Screenshots (si UI)
+## Screenshots (if UI)
 
-| Avant | Après |
-|-------|-------|
-|       |       |
+| Before | After |
+|--------|-------|
+|        |       |
 
 ## Checklist
 
-- [ ] Mon code suit le style du projet
-- [ ] J'ai ajouté des tests pour la logique métier introduite (JVM dans `src/test/`)
-- [ ] J'ai ajouté des tests instrumentés pour les nouvelles queries Room (`src/androidTest/`)
-- [ ] La CI est verte (JVM tests + APK build)
-- [ ] J'ai mis à jour le `CHANGELOG.md`
-- [ ] Ce PR ne contient ni secret, ni chemin local, ni info personnelle
+- [ ] My code follows the project style
+- [ ] I added tests for the introduced business logic (JVM under `src/test/`)
+- [ ] I added instrumented tests for new Room queries (`src/androidTest/`)
+- [ ] CI is green (JVM tests + APK build)
+- [ ] I updated `CHANGELOG.md`
+- [ ] This PR contains no secret, no local path, no personal information

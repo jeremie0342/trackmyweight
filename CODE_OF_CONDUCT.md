@@ -1,52 +1,70 @@
 # Contributor Covenant Code of Conduct
 
-## Notre engagement
+## Our Pledge
 
-Nous, contributeurs et mainteneurs, nous engageons à faire de la participation
-à ce projet une expérience libre de harcèlement pour tout le monde, quel que
-soit l'âge, la taille corporelle, le handicap visible ou invisible, l'origine
-ethnique, les caractéristiques sexuelles, l'identité et l'expression de genre,
-le niveau d'expérience, l'éducation, le statut socio-économique, la
-nationalité, l'apparence personnelle, la race, la religion, ou l'identité
-et l'orientation sexuelle.
+We as members, contributors, and leaders pledge to make participation in our
+community a harassment-free experience for everyone, regardless of age, body
+size, visible or invisible disability, ethnicity, sex characteristics, gender
+identity and expression, level of experience, education, socio-economic status,
+nationality, personal appearance, race, religion, or sexual identity
+and orientation.
 
-Nous nous engageons à agir et interagir de façon à contribuer à une communauté
-ouverte, accueillante, diversifiée, inclusive et saine.
+We pledge to act and interact in ways that contribute to an open, welcoming,
+diverse, inclusive, and healthy community.
 
-## Nos standards
+## Our Standards
 
-Exemples de comportements contribuant à un environnement positif :
+Examples of behavior that contributes to a positive environment:
 
-* Faire preuve d'empathie et de bienveillance
-* Respecter les opinions, points de vue et expériences différents
-* Donner et accepter avec grâce les critiques constructives
-* Assumer ses responsabilités et présenter des excuses en cas d'erreur
-* Se concentrer sur ce qui est le mieux pour l'ensemble de la communauté
+* Demonstrating empathy and kindness toward other people
+* Being respectful of differing opinions, viewpoints, and experiences
+* Giving and gracefully accepting constructive feedback
+* Accepting responsibility and apologizing to those affected by our mistakes,
+  and learning from the experience
+* Focusing on what is best not just for us as individuals, but for the overall community
 
-Exemples de comportements inacceptables :
+Examples of unacceptable behavior:
 
-* Utilisation de langage ou d'imagerie à caractère sexuel
-* Trolling, insultes, remarques désobligeantes, attaques personnelles ou politiques
-* Harcèlement public ou privé
-* Publication d'informations privées sans permission explicite
-* Autre conduite raisonnablement considérée comme inappropriée en milieu professionnel
+* The use of sexualized language or imagery, and sexual attention or advances
+* Trolling, insulting or derogatory comments, and personal or political attacks
+* Public or private harassment
+* Publishing others' private information, such as a physical or email address,
+  without their explicit permission
+* Other conduct which could reasonably be considered inappropriate in a
+  professional setting
 
-## Responsabilités
+## Enforcement Responsibilities
 
-Les mainteneurs sont responsables de clarifier et faire respecter les standards.
-Ils ont le droit et le devoir de supprimer, modifier ou rejeter tout contenu
-non-conforme, et de bannir temporairement ou définitivement tout contributeur
-pour comportement inapproprié.
+Community leaders are responsible for clarifying and enforcing our standards of
+acceptable behavior and will take appropriate and fair corrective action in
+response to any behavior that they deem inappropriate, threatening, offensive,
+or harmful.
 
-## Application
+Community leaders have the right and responsibility to remove, edit, or reject
+comments, commits, code, wiki edits, issues, and other contributions that are
+not aligned with this Code of Conduct, and will communicate reasons for
+moderation decisions when appropriate.
 
-Signale les violations en privé via **security@trackmyweight** (email placeholder,
-remplacer par un vrai email de contact) ou en DM à un mainteneur GitHub. Toutes
-les plaintes seront examinées rapidement et de manière juste.
+## Scope
+
+This Code of Conduct applies within all community spaces, and also applies when
+an individual is officially representing the community in public spaces.
+
+## Enforcement
+
+Instances of abusive, harassing, or otherwise unacceptable behavior may be
+reported to the community leaders responsible for enforcement via a private
+GitHub Security Advisory or a direct message to a maintainer. All complaints
+will be reviewed and investigated promptly and fairly.
+
+All community leaders are obligated to respect the privacy and security of the
+reporter of any incident.
 
 ## Attribution
 
-Ce Code de Conduite est adapté du
-[Contributor Covenant](https://www.contributor-covenant.org),
-version 2.1, disponible sur
-https://www.contributor-covenant.org/version/2/1/code_of_conduct.html.
+This Code of Conduct is adapted from the [Contributor Covenant][homepage],
+version 2.1, available at
+[https://www.contributor-covenant.org/version/2/1/code_of_conduct.html][v2.1].
+
+[homepage]: https://www.contributor-covenant.org
+[v2.1]: https://www.contributor-covenant.org/version/2/1/code_of_conduct.html
