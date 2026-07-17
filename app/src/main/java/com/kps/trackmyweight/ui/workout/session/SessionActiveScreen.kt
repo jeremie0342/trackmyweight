@@ -14,10 +14,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import android.content.Intent
+import android.speech.RecognizerIntent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material3.IconButton
+import com.kps.trackmyweight.domain.calc.VoiceSetParser
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -237,6 +244,17 @@ private fun ExerciseCardView(
                 }
             }
 
+            val voiceLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { res ->
+                val transcript = res.data
+                    ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                    ?.firstOrNull()
+                if (transcript != null) {
+                    VoiceSetParser.parse(transcript)?.let { parsed ->
+                        weightText = "%.1f".format(parsed.weightKg)
+                        repsText = parsed.reps.toString()
+                    }
+                }
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(modifier = Modifier.weight(1f)) {
                     NumericField(label = "Poids", valueText = weightText, suffix = "kg", onValueChange = { weightText = it })
@@ -246,6 +264,16 @@ private fun ExerciseCardView(
                 }
                 Box(modifier = Modifier.weight(1f)) {
                     NumericField(label = "RPE", valueText = rpeText, onValueChange = { rpeText = it })
+                }
+                IconButton(onClick = {
+                    val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                        putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                        putExtra(RecognizerIntent.EXTRA_LANGUAGE, "fr-FR")
+                        putExtra(RecognizerIntent.EXTRA_PROMPT, "Dis : 12 reps à 80 kilos")
+                    }
+                    runCatching { voiceLauncher.launch(intent) }
+                }) {
+                    Icon(Icons.Outlined.Mic, contentDescription = "Voix", tint = MaterialTheme.colorScheme.primary)
                 }
             }
             Button(
