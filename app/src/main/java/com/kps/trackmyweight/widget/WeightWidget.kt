@@ -84,6 +84,12 @@ class WeightWidget : GlanceAppWidget() {
                     }
                     Text(text = text, style = TextStyle(color = InkTextMuted, fontSize = 11.sp))
                 }
+                Spacer(GlanceModifier.height(8.dp))
+                Text(
+                    text = "+ Ajouter une pesée",
+                    style = TextStyle(color = ColorProvider(Color(0xFF5EEAD4)), fontSize = 12.sp, fontWeight = FontWeight.Medium),
+                    modifier = GlanceModifier.clickable(actionStartActivity<QuickWeightEntryActivity>()),
+                )
             }
         }
     }

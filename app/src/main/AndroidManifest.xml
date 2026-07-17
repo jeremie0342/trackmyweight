@@ -39,6 +39,13 @@
         tools:targetApi="35">
 
         <activity
+            android:name=".widget.QuickWeightEntryActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask" />
+
+        <activity
             android:name=".MainActivity"
             android:exported="true"
             android:theme="@style/Theme.TrackMyWeight.Splash"
