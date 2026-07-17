@@ -29,11 +29,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kps.trackmyweight.data.db.enums.GoalPhase
 import com.kps.trackmyweight.data.repository.AnalyticsRepository
+import com.kps.trackmyweight.data.repository.CoachAutoApply
 import com.kps.trackmyweight.data.repository.GoalRepository
 import com.kps.trackmyweight.data.repository.NutritionRepository
 import com.kps.trackmyweight.data.repository.WeightRepository
 import com.kps.trackmyweight.data.repository.WeeklyReport
+import com.kps.trackmyweight.domain.calc.CoachAdvice
+import com.kps.trackmyweight.domain.calc.CoachAdviceKind
+import com.kps.trackmyweight.domain.calc.NutritionCalculator
 import com.kps.trackmyweight.ui.common.PrimaryButton
+import androidx.compose.material3.TextButton
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -55,6 +60,7 @@ class ReportsViewModel @Inject constructor(
     private val goalRepo: GoalRepository,
     private val nutritionRepo: NutritionRepository,
     private val weightRepo: WeightRepository,
+    private val coachAuto: CoachAutoApply,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ReportsUiState())
@@ -83,6 +89,25 @@ class ReportsViewModel @Inject constructor(
                 weeksInPhase = weeksInPhase,
             )
             _state.value = ReportsUiState(report = report, isLoading = false)
+        }
+    }
+
+    fun applyAdvice(advice: CoachAdvice) {
+        viewModelScope.launch {
+            val today = analyticsRepo.todayLocal()
+            val phase = nutritionRepo.observeActivePhase().first() ?: return@launch
+            when (advice.kind) {
+                CoachAdviceKind.REFEED_DUE -> {
+                    // TDEE approximatif = phase.targetKcal + 400 (estimation moyenne du déficit actuel)
+                    val tdeeEstimate = phase.targetKcal + 400
+                    coachAuto.applyRefeed(from = today, tdeeKcal = tdeeEstimate, proteinTargetG = phase.targetProteinG)
+                    generate()
+                }
+                CoachAdviceKind.DELOAD_DUE -> {
+                    // Un flag pourrait être ajouté dans un DataStore ; on notifie juste pour l'instant
+                }
+                else -> Unit
+            }
         }
     }
 }
@@ -115,7 +140,7 @@ fun ReportsScreen(vm: ReportsViewModel = hiltViewModel()) {
                 NarrativeCard(r.summary.narrative)
                 MetricsGrid(r.summary)
                 r.projection?.let { ProjectionCard(it) }
-                CoachAdvicesCard(r.advices)
+                CoachAdvicesCard(r.advices, onApply = vm::applyAdvice)
             }
             PrimaryButton(text = "Régénérer", onClick = vm::generate, enabled = !state.isLoading)
             Spacer(Modifier.height(120.dp))
@@ -207,7 +232,10 @@ private fun ProjectionCard(p: com.kps.trackmyweight.domain.calc.ProjectionResult
 }
 
 @Composable
-private fun CoachAdvicesCard(advices: List<com.kps.trackmyweight.domain.calc.CoachAdvice>) {
+private fun CoachAdvicesCard(
+    advices: List<com.kps.trackmyweight.domain.calc.CoachAdvice>,
+    onApply: (com.kps.trackmyweight.domain.calc.CoachAdvice) -> Unit = {},
+) {
     if (advices.isEmpty()) return
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
@@ -219,6 +247,9 @@ private fun CoachAdvicesCard(advices: List<com.kps.trackmyweight.domain.calc.Coa
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(a.title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
                     Text(a.message, style = MaterialTheme.typography.bodyMedium)
+                    if (a.kind == CoachAdviceKind.REFEED_DUE) {
+                        TextButton(onClick = { onApply(a) }) { Text("Programmer une semaine de refeed") }
+                    }
                 }
             }
         }
