@@ -35,7 +35,7 @@ object DatabaseModule {
             .setJournalMode(androidx.room.RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
             // Beta : pas de migrations formelles, on drop tout à chaque bump de schéma.
             // À remplacer par de vraies Migration(from, to) après v1.0 stable.
-            .fallbackToDestructiveMigration(dropAllTables = true)
+            .fallbackToDestructiveMigration()
             .build()
 
     @Provides fun provideUserDao(db: TrackMyWeightDatabase): UserDao = db.userDao()
