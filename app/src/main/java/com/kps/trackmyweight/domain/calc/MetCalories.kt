@@ -23,6 +23,11 @@ object MetCalories {
         CardioType.HIIT -> 10.0f
         CardioType.LISS -> 5.0f
         CardioType.SWIM -> 8.0f
+        CardioType.BATTLE_ROPES -> 8.3f
+        CardioType.JUMPING_JACKS -> 8.0f
+        CardioType.BURPEES -> 10.0f
+        CardioType.MOUNTAIN_CLIMBERS -> 8.0f
+        CardioType.STAIR_MASTER -> 9.0f
         CardioType.OTHER -> 6.0f
     }
 

@@ -61,7 +61,9 @@ enum class PrKind {
 
 @Serializable
 enum class CardioType {
-    RUN, BIKE, ROWER, ELLIPTICAL, JUMP_ROPE, WALK, HIIT, LISS, SWIM, OTHER
+    RUN, BIKE, ROWER, ELLIPTICAL, JUMP_ROPE, WALK, HIIT, LISS, SWIM,
+    BATTLE_ROPES, JUMPING_JACKS, BURPEES, MOUNTAIN_CLIMBERS, STAIR_MASTER,
+    OTHER,
 }
 
 @Serializable enum class CardioSource { MANUAL, HEALTH_CONNECT, GPS }

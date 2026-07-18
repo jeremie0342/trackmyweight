@@ -173,11 +173,21 @@ interface WorkoutDao {
     @Insert
     suspend fun insertCardio(session: CardioSessionEntity): Long
 
+    @Update
+    suspend fun updateCardio(session: CardioSessionEntity)
+
     @Query("SELECT * FROM cardio_session ORDER BY date DESC LIMIT :limit")
     fun observeRecentCardio(limit: Int = 30): Flow<List<CardioSessionEntity>>
 
     @Query("SELECT * FROM cardio_session WHERE date >= :from AND date <= :to ORDER BY date")
     suspend fun getCardioInRange(from: LocalDate, to: LocalDate): List<CardioSessionEntity>
+
+    // ── Cardio blocks ─────────────────────────────────────
+    @Insert
+    suspend fun insertCardioBlock(block: com.kps.trackmyweight.data.db.entity.CardioBlockEntity): Long
+
+    @Query("SELECT * FROM cardio_block WHERE sessionId = :sessionId ORDER BY orderIndex")
+    suspend fun getBlocksFor(sessionId: Long): List<com.kps.trackmyweight.data.db.entity.CardioBlockEntity>
 
     // ── Pain ──────────────────────────────────────────────
     @Insert

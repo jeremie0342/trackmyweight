@@ -21,6 +21,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.kps.trackmyweight.ui.corps.CorpsHubScreen
+import com.kps.trackmyweight.ui.gyms.GymEditScreen
 import com.kps.trackmyweight.ui.gyms.GymsScreen
 import com.kps.trackmyweight.ui.home.HomeScreen
 import com.kps.trackmyweight.ui.measurements.MeasurementsScreen
@@ -144,6 +145,17 @@ fun AppNavHost(
         composable(TopLevel.SETTINGS.route) {
             SettingsScreen(onOpenGyms = { navController.navigate("gyms") })
         }
-        composable("gyms") { GymsScreen(onBack = { navController.popBackStack() }) }
+        composable("gyms") {
+            GymsScreen(
+                onBack = { navController.popBackStack() },
+                onEditGym = { id -> navController.navigate("gym_edit/$id") },
+            )
+        }
+        composable(
+            route = "gym_edit/{id}",
+            arguments = listOf(androidx.navigation.navArgument("id") { type = androidx.navigation.NavType.LongType }),
+        ) {
+            GymEditScreen(onBack = { navController.popBackStack() })
+        }
     }
 }

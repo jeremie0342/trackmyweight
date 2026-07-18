@@ -61,4 +61,20 @@ class GymRepository @Inject constructor(
         userDao.clearDefaultGyms()
         userDao.setGymDefault(gymId, true)
     }
+
+    /** Récupère une salle par son id. */
+    suspend fun getGym(gymId: Long): GymEntity? = userDao.getGym(gymId)
+
+    /** Modifie le nom et l'équipement d'une salle existante. */
+    suspend fun updateGym(
+        gymId: Long,
+        newName: String,
+        equipmentIds: Set<Long>,
+    ) = db.withTransaction {
+        userDao.renameGym(gymId, newName)
+        userDao.clearGymEquipment(gymId)
+        equipmentIds.forEach { eqId ->
+            userDao.setGymEquipment(GymEquipmentEntity(gymId = gymId, equipmentId = eqId))
+        }
+    }
 }

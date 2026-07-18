@@ -1,9 +1,7 @@
 package com.kps.trackmyweight.ui.workout.cardio
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,14 +13,19 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -40,10 +43,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kps.trackmyweight.data.db.entity.CardioSessionEntity
 import com.kps.trackmyweight.data.db.enums.CardioType
+import com.kps.trackmyweight.data.repository.CardioBlockDraft
 import com.kps.trackmyweight.data.repository.CardioRepository
 import com.kps.trackmyweight.data.repository.WeightRepository
+import com.kps.trackmyweight.domain.calc.MetCalories
 import com.kps.trackmyweight.ui.common.ChoiceTile
 import com.kps.trackmyweight.ui.common.NumericField
+import com.kps.trackmyweight.ui.common.PrimaryButton
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -54,16 +60,20 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+data class CardioBlockUi(
+    val type: CardioType,
+    val durationMin: Int,
+    val distanceKm: Float?,
+    val rpe: Float?,
+)
+
 data class CardioLogUiState(
     val recent: List<CardioSessionEntity> = emptyList(),
-    val type: CardioType = CardioType.RUN,
-    val durationMin: String = "",
-    val distanceKm: String = "",
-    val rpe: String = "",
-    val notes: String = "",
+    val blocks: List<CardioBlockUi> = emptyList(),
     val bodyWeightKg: Float? = null,
     val isSaving: Boolean = false,
     val savedOk: Boolean = false,
+    val errorMessage: String? = null,
 )
 
 @HiltViewModel
@@ -82,30 +92,41 @@ class CardioLogViewModel @Inject constructor(
         draft.copy(recent = recent, bodyWeightKg = weight?.weightKg)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), CardioLogUiState())
 
-    fun setType(t: CardioType) = _draft.update { it.copy(type = t) }
-    fun setDurationMin(v: String) = _draft.update { it.copy(durationMin = v) }
-    fun setDistanceKm(v: String) = _draft.update { it.copy(distanceKm = v) }
-    fun setRpe(v: String) = _draft.update { it.copy(rpe = v) }
-    fun setNotes(v: String) = _draft.update { it.copy(notes = v) }
+    fun addBlock(block: CardioBlockUi) {
+        _draft.update { it.copy(blocks = it.blocks + block, errorMessage = null) }
+    }
+
+    fun removeBlock(index: Int) {
+        _draft.update { it.copy(blocks = it.blocks.toMutableList().apply { removeAt(index) }) }
+    }
 
     fun save() {
         val s = _draft.value
-        val minutes = s.durationMin.toIntOrNull() ?: return
-        val body = s.bodyWeightKg ?: return
-        _draft.update { it.copy(isSaving = true) }
+        if (s.blocks.isEmpty()) {
+            _draft.update { it.copy(errorMessage = "Ajoute au moins un bloc.") }
+            return
+        }
+        val body = s.bodyWeightKg ?: 70f
+        _draft.update { it.copy(isSaving = true, errorMessage = null) }
         viewModelScope.launch {
-            cardioRepo.log(
-                type = s.type,
-                durationSec = minutes * 60,
-                bodyWeightKg = body,
-                distanceM = s.distanceKm.toFloatOrNull()?.let { it * 1000f },
-                avgRpe = s.rpe.toFloatOrNull(),
-                notes = s.notes.takeIf { it.isNotBlank() },
-            )
-            _draft.update {
-                CardioLogUiState(
-                    type = s.type, bodyWeightKg = body, recent = it.recent, savedOk = true,
+            runCatching {
+                cardioRepo.logMultiBlock(
+                    blocks = s.blocks.map { b ->
+                        CardioBlockDraft(
+                            type = b.type,
+                            durationSec = b.durationMin * 60,
+                            distanceM = b.distanceKm?.let { it * 1000f },
+                            avgRpe = b.rpe,
+                        )
+                    },
+                    bodyWeightKg = body,
                 )
+            }.onSuccess {
+                _draft.update {
+                    CardioLogUiState(bodyWeightKg = s.bodyWeightKg, recent = it.recent, savedOk = true)
+                }
+            }.onFailure { e ->
+                _draft.update { it.copy(isSaving = false, errorMessage = e.message ?: "Erreur d'enregistrement") }
             }
         }
     }
@@ -120,6 +141,7 @@ fun CardioLogScreen(
     vm: CardioLogViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
+    var showAddBlock by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.savedOk) { if (state.savedOk) { vm.consumeSaved(); onDone() } }
 
@@ -129,7 +151,7 @@ fun CardioLogScreen(
             ExtendedFloatingActionButton(
                 onClick = vm::save,
                 icon = { Icon(Icons.Outlined.Check, null) },
-                text = { Text(if (state.isSaving) "Enregistrement..." else "Enregistrer") },
+                text = { Text(if (state.isSaving) "Enregistrement..." else "Terminer la séance") },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
             )
@@ -141,54 +163,54 @@ fun CardioLogScreen(
                 .padding(insets)
                 .padding(horizontal = 20.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             com.kps.trackmyweight.ui.common.BackHeader(title = "Cardio", onBack = onBack)
 
-            Text("Type", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf(
-                    CardioType.WALK to "Marche",
-                    CardioType.RUN to "Course",
-                    CardioType.LISS to "LISS (basse intensité)",
-                    CardioType.BIKE to "Vélo",
-                    CardioType.ROWER to "Rameur",
-                    CardioType.ELLIPTICAL to "Elliptique",
-                    CardioType.JUMP_ROPE to "Corde à sauter",
-                    CardioType.HIIT to "HIIT",
-                    CardioType.SWIM to "Natation",
-                ).forEach { (t, label) ->
-                    ChoiceTile(title = label, selected = state.type == t, onClick = { vm.setType(t) })
-                }
-            }
-
-            NumericField(label = "Durée", valueText = state.durationMin, suffix = "min", onValueChange = vm::setDurationMin)
-            NumericField(label = "Distance (optionnel)", valueText = state.distanceKm, suffix = "km", onValueChange = vm::setDistanceKm)
-            NumericField(label = "RPE moyen (1-10, optionnel)", valueText = state.rpe, onValueChange = vm::setRpe)
+            Text(
+                "Enchaîne plusieurs blocs (ex : 20min elliptique + 30min tapis + corde à sauter).",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
 
             if (state.bodyWeightKg == null) {
                 Text(
-                    "Log au moins une pesée pour estimer les calories.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.tertiary,
+                    "Aucune pesée loguée — kcal estimés sur 70 kg par défaut.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            } else {
-                val kcal = state.durationMin.toIntOrNull()?.let { min ->
-                    com.kps.trackmyweight.domain.calc.MetCalories.estimate(
-                        type = state.type, durationSec = min * 60,
-                        bodyWeightKg = state.bodyWeightKg!!,
-                        avgRpe = state.rpe.toFloatOrNull(),
-                    )
+            }
+
+            if (state.blocks.isNotEmpty()) {
+                val effWeight = state.bodyWeightKg ?: 70f
+                val totalMin = state.blocks.sumOf { it.durationMin }
+                val totalKcal = state.blocks.sumOf {
+                    MetCalories.estimate(it.type, it.durationMin * 60, effWeight, it.rpe)
                 }
-                if (kcal != null && kcal > 0) {
-                    Text(
-                        "Estimation : ~$kcal kcal",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
+                Text(
+                    "$totalMin min · ~$totalKcal kcal",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                state.blocks.forEachIndexed { i, b ->
+                    BlockRow(index = i + 1, block = b, weightKg = effWeight, onRemove = { vm.removeBlock(i) })
                 }
             }
 
+            TextButton(
+                onClick = { showAddBlock = true },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(Icons.Outlined.Add, null)
+                Spacer(Modifier.padding(horizontal = 4.dp))
+                Text("Ajouter un bloc")
+            }
+
+            state.errorMessage?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+            }
+
+            Spacer(Modifier.height(16.dp))
             Text("Historique", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (state.recent.isEmpty()) {
                 Text("Aucune séance loguée.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -200,6 +222,98 @@ fun CardioLogScreen(
             Spacer(Modifier.height(120.dp))
         }
     }
+
+    if (showAddBlock) {
+        AddBlockDialog(
+            weightKg = state.bodyWeightKg ?: 70f,
+            onDismiss = { showAddBlock = false },
+            onConfirm = { b -> vm.addBlock(b); showAddBlock = false },
+        )
+    }
+}
+
+@Composable
+private fun BlockRow(index: Int, block: CardioBlockUi, weightKg: Float, onRemove: () -> Unit) {
+    val kcal = MetCalories.estimate(block.type, block.durationMin * 60, weightKg, block.rpe)
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Bloc $index · ${block.type.labelFr()}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                val details = buildString {
+                    append("${block.durationMin} min")
+                    block.distanceKm?.let { append(" · $it km") }
+                    block.rpe?.let { append(" · RPE $it") }
+                    append(" · ~$kcal kcal")
+                }
+                Text(details, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            IconButton(onClick = onRemove) {
+                Icon(Icons.Outlined.Close, contentDescription = "Retirer", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AddBlockDialog(
+    weightKg: Float,
+    onDismiss: () -> Unit,
+    onConfirm: (CardioBlockUi) -> Unit,
+) {
+    var type by remember { mutableStateOf(CardioType.ELLIPTICAL) }
+    var duration by remember { mutableStateOf("") }
+    var distance by remember { mutableStateOf("") }
+    var rpe by remember { mutableStateOf("") }
+
+    val estimatedKcal = duration.toIntOrNull()?.takeIf { it > 0 }?.let { min ->
+        MetCalories.estimate(type, min * 60, weightKg, rpe.toFloatOrNull())
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Nouveau bloc") },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.height(520.dp).verticalScroll(rememberScrollState()),
+            ) {
+                Text("Type", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                CardioType.entries.forEach { t ->
+                    ChoiceTile(title = t.labelFr(), selected = type == t, onClick = { type = t })
+                }
+                NumericField(label = "Durée", valueText = duration, suffix = "min", onValueChange = { duration = it })
+                NumericField(label = "Distance (optionnel)", valueText = distance, suffix = "km", onValueChange = { distance = it })
+                NumericField(label = "RPE moyen (optionnel)", valueText = rpe, onValueChange = { rpe = it })
+                estimatedKcal?.let {
+                    Text("~$it kcal", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                }
+            }
+        },
+        confirmButton = {
+            PrimaryButton(
+                text = "Ajouter",
+                enabled = (duration.toIntOrNull() ?: 0) > 0,
+                onClick = {
+                    onConfirm(
+                        CardioBlockUi(
+                            type = type,
+                            durationMin = duration.toInt(),
+                            distanceKm = distance.toFloatOrNull(),
+                            rpe = rpe.toFloatOrNull(),
+                        )
+                    )
+                },
+            )
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } },
+    )
 }
 
 @Composable
@@ -213,8 +327,26 @@ private fun CardioRow(s: CardioSessionEntity) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text("${s.type.name}  ${s.durationSec / 60} min", style = MaterialTheme.typography.bodyLarge)
+            Text("${s.type.labelFr()} · ${s.durationSec / 60} min", style = MaterialTheme.typography.bodyLarge)
             Text("${s.date} · ${s.caloriesEstimated.toInt()} kcal", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
+}
+
+private fun CardioType.labelFr() = when (this) {
+    CardioType.WALK -> "Marche"
+    CardioType.RUN -> "Course"
+    CardioType.LISS -> "LISS"
+    CardioType.BIKE -> "Vélo"
+    CardioType.ROWER -> "Rameur"
+    CardioType.ELLIPTICAL -> "Elliptique"
+    CardioType.JUMP_ROPE -> "Corde à sauter"
+    CardioType.HIIT -> "HIIT"
+    CardioType.SWIM -> "Natation"
+    CardioType.BATTLE_ROPES -> "Battle ropes"
+    CardioType.JUMPING_JACKS -> "Jumping jacks"
+    CardioType.BURPEES -> "Burpees"
+    CardioType.MOUNTAIN_CLIMBERS -> "Mountain climbers"
+    CardioType.STAIR_MASTER -> "Stair master"
+    CardioType.OTHER -> "Autre"
 }

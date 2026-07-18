@@ -92,6 +92,7 @@ import com.kps.trackmyweight.data.db.entity.WorkoutTemplateEntity
         PersonalRecordEntity::class,
         MuscleGroupVolumeWeeklyEntity::class,
         CardioSessionEntity::class,
+        com.kps.trackmyweight.data.db.entity.CardioBlockEntity::class,
         PainLogEntity::class,
         // Nutrition
         FoodEntity::class,
@@ -122,7 +123,7 @@ import com.kps.trackmyweight.data.db.entity.WorkoutTemplateEntity
         BackupRecordEntity::class,
         AppEventEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)

@@ -98,6 +98,7 @@ class GymsViewModel @Inject constructor(
 @Composable
 fun GymsScreen(
     onBack: () -> Unit = {},
+    onEditGym: (Long) -> Unit = {},
     vm: GymsViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
@@ -135,7 +136,9 @@ fun GymsScreen(
             if (state.gyms.isEmpty()) {
                 Text("Aucune salle. Crée-en une avec le bouton +.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
-                state.gyms.forEach { g -> GymRow(g, onSetDefault = { vm.setDefault(g.id) }) }
+                state.gyms.forEach { g ->
+                    GymRow(g, onSetDefault = { vm.setDefault(g.id) }, onEdit = { onEditGym(g.id) })
+                }
             }
             Spacer(Modifier.height(120.dp))
         }
@@ -151,7 +154,7 @@ fun GymsScreen(
 }
 
 @Composable
-private fun GymRow(g: GymEntity, onSetDefault: () -> Unit) {
+private fun GymRow(g: GymEntity, onSetDefault: () -> Unit, onEdit: () -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         shape = RoundedCornerShape(16.dp),
@@ -169,6 +172,7 @@ private fun GymRow(g: GymEntity, onSetDefault: () -> Unit) {
                     color = if (g.isDefault) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            androidx.compose.material3.TextButton(onClick = onEdit) { Text("Modifier") }
             if (g.isDefault) {
                 Icon(Icons.Outlined.Star, contentDescription = "Actif", tint = MaterialTheme.colorScheme.primary)
             }

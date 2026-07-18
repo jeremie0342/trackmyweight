@@ -263,6 +263,34 @@ data class CardioSessionEntity(
     val createdAt: Instant,
 )
 
+/**
+ * Bloc individuel dans une CardioSession multi-blocs.
+ * Ex : 20min elliptique + 30min tapis + 5min corde = 3 blocs.
+ */
+@Entity(
+    tableName = "cardio_block",
+    foreignKeys = [
+        ForeignKey(
+            entity = CardioSessionEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["sessionId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("sessionId")],
+)
+data class CardioBlockEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val sessionId: Long,
+    val orderIndex: Int,
+    val type: CardioType,
+    val durationSec: Int,
+    val distanceM: Float? = null,
+    val avgRpe: Float? = null,
+    val caloriesEstimated: Float,
+    val notes: String? = null,
+)
+
 @Entity(
     tableName = "pain_log",
     foreignKeys = [
