@@ -60,6 +60,7 @@ import kotlinx.coroutines.launch
 fun NutritionScreen(vm: NutritionViewModel = hiltViewModel()) {
     val state by vm.state.collectAsState()
     var showAddDialog by remember { mutableStateOf<MealType?>(null) }
+    var showFavPicker by remember { mutableStateOf<MealType?>(null) }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -100,7 +101,9 @@ fun NutritionScreen(vm: NutritionViewModel = hiltViewModel()) {
                 MealSection(
                     label = label,
                     meal = state.meals.firstOrNull { it.meal.mealType == type },
+                    hasFavorites = state.favorites.isNotEmpty(),
                     onAdd = { showAddDialog = type },
+                    onOpenFavorites = { showFavPicker = type },
                     onDeleteEntry = vm::deleteEntry,
                 )
             }
@@ -117,7 +120,18 @@ fun NutritionScreen(vm: NutritionViewModel = hiltViewModel()) {
             onDismiss = { showAddDialog = null },
             onConfirm = { foodId, mode, qty, cook ->
                 vm.addEntry(currentDialog, foodId, mode, qty, cook)
-                showAddDialog = null
+            },
+        )
+    }
+
+    val currentFav = showFavPicker
+    if (currentFav != null) {
+        FavoritePickerDialog(
+            favorites = state.favorites,
+            onDismiss = { showFavPicker = null },
+            onPick = { favId ->
+                vm.applyFavorite(currentFav, favId)
+                showFavPicker = null
             },
         )
     }
@@ -246,7 +260,9 @@ private fun DistributionCard(v: com.kps.trackmyweight.domain.calc.DistributionVe
 private fun MealSection(
     label: String,
     meal: MealWithEntries?,
+    hasFavorites: Boolean,
     onAdd: () -> Unit,
+    onOpenFavorites: () -> Unit,
     onDeleteEntry: (Long) -> Unit,
 ) {
     Card(
@@ -262,6 +278,9 @@ private fun MealSection(
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (hasFavorites) {
+                    TextButton(onClick = onOpenFavorites) { Text("★") }
+                }
                 TextButton(onClick = onAdd) {
                     Icon(Icons.Outlined.Add, null)
                     Spacer(Modifier.padding(horizontal = 2.dp))
@@ -307,6 +326,7 @@ private fun AddEntryDialog(
     var mode by remember { mutableStateOf(PortionMode.SERVING) }
     var quantityText by remember { mutableStateOf("1") }
     var cooking by remember { mutableStateOf<CookingMethod?>(null) }
+    var addedCount by remember { mutableStateOf(0) }
 
     LaunchedEffect(query) { results = search(query) }
     LaunchedEffect(picked?.id) {
@@ -319,9 +339,14 @@ private fun AddEntryDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Ajouter à ${mealType.label()}") },
+        title = {
+            Text(
+                if (addedCount == 0) "Ajouter à ${mealType.label()}"
+                else "Ajouter à ${mealType.label()} ($addedCount déjà ajouté${if (addedCount > 1) "s" else ""})"
+            )
+        },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.height(520.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.height(560.dp)) {
                 if (picked == null) {
                     TextField(label = "Rechercher un aliment", value = query, onValueChange = { query = it })
                     Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -386,15 +411,20 @@ private fun AddEntryDialog(
                     onClick = {
                         val q = quantityText.toFloatOrNull() ?: return@PrimaryButton
                         onConfirm(picked!!.id, mode, q, cooking)
+                        // Reste dans le dialogue pour empiler d'autres aliments (café + sucre + lait...)
+                        addedCount += 1
+                        picked = null
+                        query = ""
                     },
                     enabled = quantityText.toFloatOrNull() != null,
                 )
             } else {
-                TextButton(onClick = onDismiss) { Text("Annuler") }
+                PrimaryButton(text = if (addedCount > 0) "Terminer" else "Fermer", onClick = onDismiss)
             }
         },
         dismissButton = {
             if (picked != null) TextButton(onClick = { picked = null }) { Text("← Retour") }
+            else if (addedCount == 0) TextButton(onClick = onDismiss) { Text("Annuler") }
         },
     )
 }
@@ -447,6 +477,51 @@ private fun buildPortionOptions(
         }
     }
     return out
+}
+
+@Composable
+private fun FavoritePickerDialog(
+    favorites: List<com.kps.trackmyweight.data.db.entity.FavoriteMealEntity>,
+    onDismiss: () -> Unit,
+    onPick: (Long) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Mes repas favoris") },
+        text = {
+            if (favorites.isEmpty()) {
+                Text(
+                    "Aucun favori pour l'instant. Enregistre un repas comme favori pour le réutiliser en un tap.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            } else {
+                Column(
+                    modifier = Modifier.height(400.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    favorites.forEach { fav ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { onPick(fav.id) }
+                                .padding(vertical = 12.dp, horizontal = 8.dp),
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(fav.name, style = MaterialTheme.typography.bodyLarge)
+                                Text(
+                                    "Utilisé ${fav.usageCount}x",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Fermer") } },
+    )
 }
 
 @Composable
