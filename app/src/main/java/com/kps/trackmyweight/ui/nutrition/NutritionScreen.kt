@@ -74,10 +74,10 @@ fun NutritionScreen(vm: NutritionViewModel = hiltViewModel()) {
             )
         },
     ) { insets ->
+      androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxSize().padding(insets)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(insets)
                 .padding(horizontal = 20.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -109,6 +109,8 @@ fun NutritionScreen(vm: NutritionViewModel = hiltViewModel()) {
             }
             Spacer(Modifier.height(120.dp))
         }
+        com.kps.trackmyweight.ui.common.LoaderOverlay(visible = state.isLoading)
+      }
     }
 
     val currentDialog = showAddDialog

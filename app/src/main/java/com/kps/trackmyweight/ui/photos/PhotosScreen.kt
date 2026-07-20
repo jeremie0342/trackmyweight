@@ -171,14 +171,20 @@ fun PhotosScreen(
 
 @Composable
 private fun AngleSelector(current: PhotoAngle, onSelect: (PhotoAngle) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        PhotoAngle.entries.forEach { a ->
-            Box(modifier = Modifier.weight(1f)) {
-                ChoiceTile(
-                    title = a.short(),
-                    selected = a == current,
-                    onClick = { onSelect(a) },
-                )
+    // 2x2 pour éviter que "Profil G" / "Profil D" soient écrasés sur une seule ligne.
+    val pairs = PhotoAngle.entries.chunked(2)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        pairs.forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { a ->
+                    Box(modifier = Modifier.weight(1f)) {
+                        ChoiceTile(
+                            title = a.short(),
+                            selected = a == current,
+                            onClick = { onSelect(a) },
+                        )
+                    }
+                }
             }
         }
     }

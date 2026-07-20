@@ -16,7 +16,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import com.kps.trackmyweight.ui.nav.AppBottomBar
 import com.kps.trackmyweight.ui.nav.AppNavHost
 import com.kps.trackmyweight.ui.nav.rememberAppNavController
 import com.kps.trackmyweight.ui.onboarding.OnboardingHost
@@ -54,8 +53,8 @@ private fun RootRouter(destination: RootDestination, onOnboardingDone: () -> Uni
     when (destination) {
         RootDestination.LOADING -> {
             Scaffold { padding ->
-                Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+                    com.kps.trackmyweight.ui.common.FullScreenLoader(message = "Chargement…")
                 }
             }
         }
@@ -68,13 +67,7 @@ private fun RootRouter(destination: RootDestination, onOnboardingDone: () -> Uni
         }
         RootDestination.HOME -> {
             val navController = rememberAppNavController()
-            Scaffold(
-                bottomBar = { AppBottomBar(navController) },
-            ) { padding ->
-                Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-                    AppNavHost(navController, padding)
-                }
-            }
+            AppNavHost(navController)
         }
     }
 }
