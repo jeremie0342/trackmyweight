@@ -36,6 +36,15 @@ interface NutritionDao {
     @Query("SELECT * FROM food WHERE id = :id LIMIT 1")
     suspend fun getFood(id: Long): FoodEntity?
 
+    @Query("SELECT name FROM food")
+    suspend fun getAllFoodNames(): List<String>
+
+    @Query("SELECT id FROM food WHERE name = :name LIMIT 1")
+    suspend fun findFoodIdByName(name: String): Long?
+
+    @Query("UPDATE food SET name = :newName WHERE name = :oldName")
+    suspend fun renameFood(oldName: String, newName: String)
+
     @Query("SELECT * FROM food WHERE barcode = :code LIMIT 1")
     suspend fun getFoodByBarcode(code: String): FoodEntity?
 

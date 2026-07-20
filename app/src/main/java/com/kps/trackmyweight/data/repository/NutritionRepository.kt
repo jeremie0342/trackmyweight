@@ -46,15 +46,25 @@ class NutritionRepository @Inject constructor(
     private val nutritionDao: NutritionDao,
 ) {
     // ── Seed ─────────────────────────────────────────
+    /**
+     * Seed idempotent : insère les aliments manquants (par nom) et leurs aliases.
+     * N'écrase pas les entrées existantes. Appelable à chaque cold start.
+     */
     suspend fun seedIfEmpty() {
-        val currentFoods = nutritionDao.observeFoodsByRegion(
-            com.kps.trackmyweight.data.db.enums.FoodRegion.BENIN, limit = 1
-        ).first()
-        if (currentFoods.isNotEmpty()) return
+        // Migration ponctuelle : le nom "Œuf" avec ligature n'est pas trouvé par FTS
+        // quand l'utilisateur tape "oeuf" — on renomme les entrées existantes.
+        db.withTransaction {
+            nutritionDao.renameFood("Œuf de poule locale", "Oeuf de poule locale")
+            nutritionDao.renameFood("Œuf de poule industrielle", "Oeuf de poule industrielle")
+        }
+
         val now = Clock.System.now()
         val seeded = FoodSeed.seeded(now)
+        val existing = nutritionDao.getAllFoodNames().toHashSet()
+        val toAdd = seeded.filter { it.food.name !in existing }
+        if (toAdd.isEmpty()) return
         db.withTransaction {
-            seeded.forEach { entry ->
+            toAdd.forEach { entry ->
                 val foodId = nutritionDao.upsertFood(entry.food)
                 if (entry.aliases.isNotEmpty()) {
                     nutritionDao.setPortionAliases(
