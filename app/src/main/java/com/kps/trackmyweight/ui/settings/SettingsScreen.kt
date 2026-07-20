@@ -97,6 +97,7 @@ class SettingsViewModel @Inject constructor(
 @Composable
 fun SettingsScreen(
     onOpenGyms: () -> Unit = {},
+    onOpenGoal: () -> Unit = {},
     vm: SettingsViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
@@ -145,6 +146,23 @@ fun SettingsScreen(
         ) {
             Spacer(Modifier.height(16.dp))
             Text("Paramètres", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.SemiBold)
+
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                shape = RoundedCornerShape(20.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onOpenGoal() },
+            ) {
+                Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Mon objectif", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                    Text(
+                        "Vois ton profil, ton objectif, ta phase (CUT / RECOMP / MAINTENANCE / BULK). Change de phase pour recalculer instantanément tes cibles caloriques.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
 
             Card(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),

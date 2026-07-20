@@ -7,11 +7,15 @@ import com.kps.trackmyweight.data.db.entity.FavoriteMealEntity
 import com.kps.trackmyweight.data.db.entity.FoodEntity
 import com.kps.trackmyweight.data.db.enums.MealType
 import com.kps.trackmyweight.data.db.enums.PortionMode
+import com.kps.trackmyweight.data.repository.GoalRepository
 import com.kps.trackmyweight.data.repository.MealWithEntries
 import com.kps.trackmyweight.data.repository.NutritionRepository
+import com.kps.trackmyweight.data.repository.UserProfileRepository
+import com.kps.trackmyweight.data.repository.WeightRepository
 import com.kps.trackmyweight.domain.calc.DistributionQuality
 import com.kps.trackmyweight.domain.calc.DistributionVerdict
 import com.kps.trackmyweight.domain.calc.MealProtein
+import com.kps.trackmyweight.domain.calc.NutritionCalculator
 import com.kps.trackmyweight.domain.calc.ProteinDistribution
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,6 +23,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -32,6 +37,8 @@ data class NutritionUiState(
     val date: LocalDate = LocalDate(2000, 1, 1),
     val meals: List<MealWithEntries> = emptyList(),
     val phase: DietPhaseEntity? = null,
+    /** TDEE estimé pour comparer la cible actuelle à la maintenance. */
+    val tdeeEstimate: Int? = null,
     val kcalConsumed: Float = 0f,
     val proteinConsumed: Float = 0f,
     val carbsConsumed: Float = 0f,
@@ -45,6 +52,9 @@ data class NutritionUiState(
 @HiltViewModel
 class NutritionViewModel @Inject constructor(
     private val nutritionRepo: NutritionRepository,
+    private val userRepo: UserProfileRepository,
+    private val goalRepo: GoalRepository,
+    private val weightRepo: WeightRepository,
 ) : ViewModel() {
 
     private val _date = MutableStateFlow(todayLocal())
@@ -70,10 +80,20 @@ class NutritionViewModel @Inject constructor(
                 dailyTargetG = it.targetProteinG,
             )
         }
+        val tdee = runCatching {
+            val profile = userRepo.current()
+            val weight = weightRepo.observeLast().first()?.weightKg
+            if (profile != null && weight != null) {
+                val age = date.year - profile.birthDate.year
+                val bmr = NutritionCalculator.bmr(profile.sex, weight, profile.heightCm, age)
+                NutritionCalculator.tdee(bmr, profile.activityLevel)
+            } else null
+        }.getOrNull()
         NutritionUiState(
             date = date,
             meals = meals,
             phase = phase,
+            tdeeEstimate = tdee,
             kcalConsumed = kcal,
             proteinConsumed = protein,
             carbsConsumed = carbs,

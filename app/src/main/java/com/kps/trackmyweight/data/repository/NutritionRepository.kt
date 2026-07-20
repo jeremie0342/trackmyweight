@@ -172,6 +172,11 @@ class NutritionRepository @Inject constructor(
         nutritionDao.switchActivePhase(updated.copy(id = 0, isActive = true, startDate = today()))
     }
 
+    /** Remplace la phase active complète (kind + toutes les cibles macros). */
+    suspend fun setActivePhase(phase: DietPhaseEntity) {
+        nutritionDao.switchActivePhase(phase.copy(id = 0, isActive = true, startDate = today()))
+    }
+
     private fun today(): LocalDate =
         Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
 }

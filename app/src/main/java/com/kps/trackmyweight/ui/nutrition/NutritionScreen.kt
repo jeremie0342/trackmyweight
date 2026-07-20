@@ -43,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kps.trackmyweight.data.db.entity.FoodEntity
+import com.kps.trackmyweight.data.db.enums.DietPhaseKind
 import com.kps.trackmyweight.data.db.enums.MealType
 import com.kps.trackmyweight.data.db.enums.PortionMode
 import com.kps.trackmyweight.data.repository.MealWithEntries
@@ -128,7 +129,15 @@ private fun MacrosCard(state: NutritionUiState) {
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Aujourd'hui", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Aujourd'hui",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                phase?.let { PhaseBadge(it.phase, it.targetKcal, state.tdeeEstimate) }
+            }
             Row(verticalAlignment = Alignment.Bottom) {
                 Text("%.0f".format(state.kcalConsumed), style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.padding(horizontal = 6.dp))
@@ -151,6 +160,46 @@ private fun MacrosCard(state: NutritionUiState) {
             }
         }
     }
+}
+
+@Composable
+private fun PhaseBadge(phase: DietPhaseKind, targetKcal: Int, tdee: Int?) {
+    val delta = tdee?.let { targetKcal - it }
+    val label = phase.labelFr()
+    val subtitle = when {
+        delta == null -> null
+        delta <= -50 -> "-${-delta} kcal / jour"
+        delta >= 50 -> "+$delta kcal / jour"
+        else -> "maintenance"
+    }
+    val bg = when (phase) {
+        DietPhaseKind.CUT_MODERATE, DietPhaseKind.CUT_AGGRESSIVE -> MaterialTheme.colorScheme.tertiary
+        DietPhaseKind.BULK_LEAN, DietPhaseKind.BULK_STANDARD -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.secondary
+    }
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(bg.copy(alpha = 0.15f))
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+        horizontalAlignment = Alignment.End,
+    ) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = bg, fontWeight = FontWeight.SemiBold)
+        subtitle?.let {
+            Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+internal fun DietPhaseKind.labelFr() = when (this) {
+    DietPhaseKind.CUT_MODERATE -> "Déficit modéré"
+    DietPhaseKind.CUT_AGGRESSIVE -> "Déficit agressif"
+    DietPhaseKind.RECOMP -> "Recomposition"
+    DietPhaseKind.MAINTENANCE -> "Maintenance"
+    DietPhaseKind.BULK_LEAN -> "Prise sèche"
+    DietPhaseKind.BULK_STANDARD -> "Prise de masse"
+    DietPhaseKind.REFEED -> "Refeed"
+    DietPhaseKind.DIET_BREAK -> "Diet break"
 }
 
 @Composable
@@ -210,7 +259,11 @@ private fun MealSection(
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                TextButton(onClick = onAdd) { Icon(Icons.Outlined.Add, null); Text(" +") }
+                TextButton(onClick = onAdd) {
+                    Icon(Icons.Outlined.Add, null)
+                    Spacer(Modifier.padding(horizontal = 2.dp))
+                    Text("Ajouter")
+                }
             }
             meal?.entries?.forEach { e ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
