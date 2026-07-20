@@ -73,24 +73,46 @@ object PulsePpgDetector {
         }
         if (peaks.size < 4) return null
 
-        var intervals = IntArray(peaks.size - 1) { peaks[it + 1] - peaks[it] }.toList()
+        var workingPeaks = peaks.toList()
 
-        // 3.5) Correction "harmonique dicrotique" :
-        // Si les intervalles alternent (impair / pair très différents), c'est qu'on capte
-        // les demi-pics secondaires — on fusionne tous les 2 pics pour retrouver le vrai BPM.
-        if (intervals.size >= 6) {
-            val odd = intervals.filterIndexed { i, _ -> i % 2 == 0 }
-            val even = intervals.filterIndexed { i, _ -> i % 2 == 1 }
-            if (odd.isNotEmpty() && even.isNotEmpty()) {
-                val oddMean = odd.average()
-                val evenMean = even.average()
-                val ratio = max(oddMean, evenMean) / min(oddMean, evenMean)
-                if (ratio > 1.5) {
-                    // Fusionne : on garde 1 pic sur 2 (l'algo avait doublé les pics)
-                    intervals = intervals.chunked(2).map { it.sum() }
+        // 3.5) Correction "harmonique dicrotique" — deux signes possibles :
+        //   a) intervalles qui alternent (petit/grand)
+        //   b) hauteurs de pics qui alternent (systolique grand / dicrotique petit)
+        // Dans les deux cas, on ne garde qu'un pic sur deux (le plus haut du couple).
+        fun applyFusion(subset: List<Int>) {
+            workingPeaks = subset
+        }
+
+        if (workingPeaks.size >= 6) {
+            val heights = workingPeaks.map { smooth[it] }
+            val oddH = heights.filterIndexed { i, _ -> i % 2 == 0 }.average().toFloat()
+            val evenH = heights.filterIndexed { i, _ -> i % 2 == 1 }.average().toFloat()
+            val heightRatio = if (min(oddH, evenH) > 0f) max(oddH, evenH) / min(oddH, evenH) else 1f
+
+            val intervalsRaw = IntArray(workingPeaks.size - 1) { workingPeaks[it + 1] - workingPeaks[it] }.toList()
+            val oddI = intervalsRaw.filterIndexed { i, _ -> i % 2 == 0 }.average()
+            val evenI = intervalsRaw.filterIndexed { i, _ -> i % 2 == 1 }.average()
+            val intervalRatio = if (min(oddI, evenI) > 0.0) max(oddI, evenI) / min(oddI, evenI) else 1.0
+
+            val provisionalBpm = sampleRateHz * 60f / intervalsRaw.average().toFloat()
+
+            if (heightRatio > 1.35f || intervalRatio > 1.5) {
+                val keepOdd = oddH >= evenH
+                applyFusion(workingPeaks.filterIndexed { i, _ -> (i % 2 == 0) == keepOdd })
+            } else if (provisionalBpm > 110f) {
+                // BPM très élevé pour un repos : on tente la fusion "au cas où" et
+                // on vérifie si le résultat reste physiologiquement plausible (40-110).
+                val trial = workingPeaks.filterIndexed { i, _ -> i % 2 == 0 }
+                if (trial.size >= 4) {
+                    val trialInt = IntArray(trial.size - 1) { trial[it + 1] - trial[it] }.average()
+                    val trialBpm = sampleRateHz * 60f / trialInt.toFloat()
+                    if (trialBpm in 40f..110f) applyFusion(trial)
                 }
             }
         }
+
+        var intervals = IntArray(workingPeaks.size - 1) { workingPeaks[it + 1] - workingPeaks[it] }.toList()
+        if (intervals.size < 3) return null
 
         // 4) Rejet des outliers : garde uniquement les intervalles dans ±40 % de la médiane
         val median = intervals.sorted().let { it[it.size / 2] }.toFloat()
@@ -108,6 +130,6 @@ object PulsePpgDetector {
         val cv = (std / avg).coerceIn(0f, 1f)
         val quality = (1f - cv * 2f).coerceIn(0f, 1f)  // amplifie légèrement
 
-        return Verdict(bpm = bpm, quality = quality, peaksDetected = peaks.size)
+        return Verdict(bpm = bpm, quality = quality, peaksDetected = workingPeaks.size)
     }
 }
