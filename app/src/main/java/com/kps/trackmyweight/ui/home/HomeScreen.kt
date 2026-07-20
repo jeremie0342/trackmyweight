@@ -50,6 +50,7 @@ import com.kps.trackmyweight.ui.common.PrimaryButton
 fun HomeScreen(
     onOpenReports: () -> Unit = {},
     onOpenPulsePpg: () -> Unit = {},
+    onOpenHabits: () -> Unit = {},
     vm: HomeViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
@@ -85,7 +86,12 @@ fun HomeScreen(
             MacrosSummary(state)
             SleepCard(state)
             WaterCard(mlToday = state.waterMl, targetMl = state.waterTargetMl, onAdd = { showWater = true })
-            HabitsCard(state.habits, doneHabitIds = state.completions.filter { it.isDone }.map { it.habitId }.toSet(), onToggle = vm::toggleHabit)
+            HabitsCard(
+                habits = state.habits,
+                doneHabitIds = state.completions.filter { it.isDone }.map { it.habitId }.toSet(),
+                onToggle = vm::toggleHabit,
+                onEdit = onOpenHabits,
+            )
             PulseCard(state.dailyLog?.restingHrBpm, onLog = { showPulse = true })
 
             Spacer(Modifier.height(120.dp))
@@ -296,15 +302,25 @@ private fun HabitsCard(
     habits: List<HabitDefinitionEntity>,
     doneHabitIds: Set<Long>,
     onToggle: (Long, Boolean) -> Unit,
+    onEdit: () -> Unit,
 ) {
-    if (habits.isEmpty()) return
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         shape = RoundedCornerShape(20.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("Habitudes", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Habitudes", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                TextButton(onClick = onEdit) { Text("Modifier") }
+            }
+            if (habits.isEmpty()) {
+                Text(
+                    "Aucune habitude active. Tape Modifier pour en ajouter.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             habits.forEach { h ->
                 val done = h.id in doneHabitIds
                 Row(

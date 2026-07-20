@@ -163,6 +163,7 @@ private fun RootPagerScreen(navController: NavHostController) {
                     TopLevel.HOME -> HomeScreen(
                         onOpenReports = { navController.navigate("reports") },
                         onOpenPulsePpg = { navController.navigate("pulse_ppg") },
+                        onOpenHabits = { navController.navigate("habits") },
                     )
                     TopLevel.WORKOUT -> WorkoutOverviewScreen(
                         onStartSession = { sessionId -> navController.navigate("session/$sessionId") },
