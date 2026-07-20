@@ -61,9 +61,21 @@ data class BackupRoot(
     val dailyLogs: List<BDailyLog> = emptyList(),
     val habitCompletions: List<BHabitCompletion> = emptyList(),
     val activePhase: BDietPhase? = null,
+    /** Métadonnées des photos ; les fichiers JPG sont dans photos/{fileKey}.jpg du zip. */
+    val photos: List<BPhoto> = emptyList(),
 ) {
-    companion object { const val SCHEMA_VERSION = 1 }
+    companion object { const val SCHEMA_VERSION = 2 }
 }
+
+@Serializable data class BPhoto(
+    /** Clé unique dans le zip : photos/{fileKey}.jpg */
+    val fileKey: String,
+    val date: String,
+    val angle: String,
+    val widthPx: Int? = null,
+    val heightPx: Int? = null,
+    val createdAt: String,
+)
 
 @Serializable data class BProfile(
     val sex: Sex, val birthDate: String, val heightCm: Float,

@@ -75,6 +75,8 @@ class SettingsViewModel @Inject constructor(
 
     suspend fun buildExportJson(): String = backupService.exportJson()
 
+    suspend fun writeExportZip(output: java.io.OutputStream) = backupService.exportZip(output)
+
     fun importJson(payload: String) {
         _state.value = _state.value.copy(isBusy = true, lastMessage = null)
         viewModelScope.launch {
@@ -87,6 +89,22 @@ class SettingsViewModel @Inject constructor(
                 }
                 .onFailure {
                     _state.value = SettingsUiState(isBusy = false, lastMessage = "Erreur : ${it.message}")
+                }
+        }
+    }
+
+    fun importZip(input: java.io.InputStream) {
+        _state.value = _state.value.copy(isBusy = true, lastMessage = null)
+        viewModelScope.launch {
+            runCatching { backupService.importZip(input) }
+                .onSuccess { summary ->
+                    _state.value = SettingsUiState(
+                        isBusy = false,
+                        lastMessage = "Restauration réussie : ${summary.entitiesRestored} entités (photos incluses).",
+                    )
+                }
+                .onFailure {
+                    _state.value = SettingsUiState(isBusy = false, lastMessage = "Erreur import : ${it.message}")
                 }
         }
     }
@@ -113,13 +131,24 @@ fun SettingsScreen(
 
     androidx.compose.runtime.LaunchedEffect(Unit) { vm.refreshHealthConnectStatus() }
 
+    val createZipDoc = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
+        uri?.let {
+            scope.launch {
+                runCatching {
+                    context.contentResolver.openOutputStream(it)?.use { os -> vm.writeExportZip(os) }
+                    vm.setMessage("Backup complet enregistré (photos incluses).")
+                }.onFailure { e -> vm.setMessage("Échec export : ${e.message}") }
+            }
+        }
+    }
+
     val createDoc = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         uri?.let {
             scope.launch {
                 runCatching {
                     val payload = vm.buildExportJson()
                     context.contentResolver.openOutputStream(it)?.use { os -> os.write(payload.toByteArray()) }
-                    vm.setMessage("Export enregistré.")
+                    vm.setMessage("Export JSON enregistré (sans photos).")
                 }.onFailure { e -> vm.setMessage("Échec export : ${e.message}") }
             }
         }
@@ -129,8 +158,17 @@ fun SettingsScreen(
         uri?.let {
             scope.launch {
                 runCatching {
-                    val text = context.contentResolver.openInputStream(it)?.bufferedReader()?.use { r -> r.readText() }
-                    if (text != null) vm.importJson(text)
+                    val mime = context.contentResolver.getType(it)
+                    val name = context.contentResolver.query(it, null, null, null, null)?.use { c ->
+                        val idx = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                        if (idx >= 0 && c.moveToFirst()) c.getString(idx) else null
+                    } ?: ""
+                    if (name.endsWith(".zip", ignoreCase = true) || mime == "application/zip") {
+                        context.contentResolver.openInputStream(it)?.use { input -> vm.importZip(input) }
+                    } else {
+                        val text = context.contentResolver.openInputStream(it)?.bufferedReader()?.use { r -> r.readText() }
+                        if (text != null) vm.importJson(text)
+                    }
                 }.onFailure { e -> vm.setMessage("Échec import : ${e.message}") }
             }
         }
@@ -244,7 +282,15 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     PrimaryButton(
-                        text = "Exporter en JSON",
+                        text = "Exporter (ZIP + photos)",
+                        onClick = {
+                            val name = "trackmyweight-backup-${System.currentTimeMillis()}.zip"
+                            createZipDoc.launch(name)
+                        },
+                        enabled = !state.isBusy,
+                    )
+                    SecondaryButton(
+                        text = "Exporter JSON seulement",
                         onClick = {
                             val name = "trackmyweight-backup-${System.currentTimeMillis()}.json"
                             createDoc.launch(name)
@@ -252,8 +298,8 @@ fun SettingsScreen(
                         enabled = !state.isBusy,
                     )
                     SecondaryButton(
-                        text = "Importer un JSON",
-                        onClick = { openDoc.launch(arrayOf("application/json")) },
+                        text = "Importer une sauvegarde",
+                        onClick = { openDoc.launch(arrayOf("application/zip", "application/json", "*/*")) },
                         enabled = !state.isBusy,
                     )
                 }

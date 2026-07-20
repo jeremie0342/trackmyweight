@@ -2,6 +2,14 @@ package com.kps.trackmyweight.data.backup
 
 import androidx.room.withTransaction
 import com.kps.trackmyweight.data.db.TrackMyWeightDatabase
+import com.kps.trackmyweight.data.db.entity.ProgressPhotoEntity
+import com.kps.trackmyweight.data.db.enums.PhotoAngle
+import com.kps.trackmyweight.data.photo.EncryptedPhotoStore
+import java.io.InputStream
+import java.io.OutputStream
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
 import com.kps.trackmyweight.data.db.entity.BodyMeasurementSessionEntity
 import com.kps.trackmyweight.data.db.entity.CardioSessionEntity
 import com.kps.trackmyweight.data.db.entity.DailyLogEntity
@@ -34,16 +42,45 @@ import javax.inject.Singleton
 @Singleton
 class BackupService @Inject constructor(
     private val db: TrackMyWeightDatabase,
+    private val photoStore: EncryptedPhotoStore,
 ) {
     private val json = Json { prettyPrint = true; ignoreUnknownKeys = true; encodeDefaults = true }
 
     // ─────── EXPORT ───────
     suspend fun exportJson(): String {
-        val root = buildRoot()
+        val root = buildRoot(includePhotoMeta = false)
         return json.encodeToString(BackupRoot.serializer(), root)
     }
 
-    private suspend fun buildRoot(): BackupRoot {
+    /**
+     * Export complet en zip : `backup.json` (métadonnées + toutes les entrées) et
+     * `photos/{fileKey}.jpg` (photos déchiffrées). Écrit dans [output] sans le fermer.
+     */
+    suspend fun exportZip(output: OutputStream) {
+        val bodyDao = db.bodyDao()
+        val photos = bodyDao.observePhotos().first()
+        val root = buildRoot(includePhotoMeta = true, photos = photos)
+
+        ZipOutputStream(output).use { zip ->
+            // 1) backup.json
+            zip.putNextEntry(ZipEntry("backup.json"))
+            zip.write(json.encodeToString(BackupRoot.serializer(), root).toByteArray(Charsets.UTF_8))
+            zip.closeEntry()
+            // 2) photos/{fileKey}.jpg (déchiffrées)
+            photos.forEach { p ->
+                val bytes = runCatching { photoStore.readDecrypted(p.encryptedFilePath) }.getOrNull()
+                    ?: return@forEach
+                zip.putNextEntry(ZipEntry("photos/${p.id}.jpg"))
+                zip.write(bytes)
+                zip.closeEntry()
+            }
+        }
+    }
+
+    private suspend fun buildRoot(
+        includePhotoMeta: Boolean = false,
+        photos: List<ProgressPhotoEntity> = emptyList(),
+    ): BackupRoot {
         val userDao = db.userDao()
         val bodyDao = db.bodyDao()
         val workoutDao = db.workoutDao()
@@ -126,6 +163,16 @@ class BackupService @Inject constructor(
             dailyLogs = dailyLogs.map { it.toB() },
             habitCompletions = completions,
             activePhase = activePhase?.toB(),
+            photos = if (includePhotoMeta) photos.map { p ->
+                BPhoto(
+                    fileKey = p.id.toString(),
+                    date = p.date.toString(),
+                    angle = p.angle.name,
+                    widthPx = p.widthPx,
+                    heightPx = p.heightPx,
+                    createdAt = p.createdAt.toString(),
+                )
+            } else emptyList(),
         )
     }
 
@@ -166,13 +213,40 @@ class BackupService @Inject constructor(
         return out
     }
 
+    /**
+     * Restaure depuis un ZIP (backup.json + photos/). Les photos sont re-chiffrées
+     * localement avec la clé de ce téléphone.
+     */
+    suspend fun importZip(input: InputStream): ImportSummary {
+        var jsonPayload: String? = null
+        val photoBytes = HashMap<String, ByteArray>()
+        ZipInputStream(input).use { zip ->
+            while (true) {
+                val entry = zip.nextEntry ?: break
+                val name = entry.name
+                val bytes = zip.readBytes()
+                when {
+                    name == "backup.json" -> jsonPayload = bytes.toString(Charsets.UTF_8)
+                    name.startsWith("photos/") && name.endsWith(".jpg") -> {
+                        val key = name.removePrefix("photos/").removeSuffix(".jpg")
+                        photoBytes[key] = bytes
+                    }
+                }
+                zip.closeEntry()
+            }
+        }
+        val payload = jsonPayload ?: error("backup.json manquant dans le zip")
+        val summary = importJson(payload, photoBytes)
+        return summary
+    }
+
     // ─────── IMPORT ───────
     /**
      * Restaure depuis un JSON. Vide au préalable les tables restaurables (poids, mensurations,
      * sessions, meals). Les référentiels (exercice, aliment seedé, équipement) restent intacts.
      * Renvoie le nombre d'entités restaurées.
      */
-    suspend fun importJson(payload: String): ImportSummary {
+    suspend fun importJson(payload: String, photoBytes: Map<String, ByteArray> = emptyMap()): ImportSummary {
         val root = json.decodeFromString(BackupRoot.serializer(), payload)
         val userDao = db.userDao()
         val bodyDao = db.bodyDao()
@@ -249,6 +323,27 @@ class BackupService @Inject constructor(
                 restored++
             }
         }
+
+        // Photos hors transaction (I/O disque + fichiers). Ré-encryptées avec la clé locale.
+        root.photos.forEach { bp ->
+            val bytes = photoBytes[bp.fileKey] ?: return@forEach
+            val baseName = "${bp.date}_${bp.angle.lowercase()}_${bp.fileKey}"
+            val (encPath, thumbPath) = photoStore.save(bytes, baseName)
+            bodyDao.insertPhoto(
+                ProgressPhotoEntity(
+                    date = kotlinx.datetime.LocalDate.parse(bp.date),
+                    angle = PhotoAngle.valueOf(bp.angle),
+                    encryptedFilePath = encPath,
+                    thumbnailPath = thumbPath,
+                    overlayReferencePhotoId = null,
+                    widthPx = bp.widthPx,
+                    heightPx = bp.heightPx,
+                    createdAt = kotlinx.datetime.Instant.parse(bp.createdAt),
+                ),
+            )
+            restored++
+        }
+
         return ImportSummary(entitiesRestored = restored, schemaVersion = root.schemaVersion)
     }
 
