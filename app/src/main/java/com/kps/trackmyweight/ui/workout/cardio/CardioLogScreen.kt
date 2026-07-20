@@ -333,7 +333,7 @@ private fun CardioRow(s: CardioSessionEntity) {
     }
 }
 
-private fun CardioType.labelFr() = when (this) {
+internal fun CardioType.labelFr() = when (this) {
     CardioType.WALK -> "Marche"
     CardioType.RUN -> "Course"
     CardioType.LISS -> "LISS"

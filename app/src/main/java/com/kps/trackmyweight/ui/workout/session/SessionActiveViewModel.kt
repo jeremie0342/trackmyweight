@@ -3,13 +3,16 @@ package com.kps.trackmyweight.ui.workout.session
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kps.trackmyweight.data.db.entity.CardioSessionEntity
 import com.kps.trackmyweight.data.db.entity.ExerciseEntity
 import com.kps.trackmyweight.data.db.entity.PerformedExerciseEntity
 import com.kps.trackmyweight.data.db.entity.PerformedSetEntity
 import com.kps.trackmyweight.data.db.entity.WorkoutSessionEntity
+import com.kps.trackmyweight.data.db.enums.CardioType
 import com.kps.trackmyweight.data.db.enums.MuscleGroup
 import com.kps.trackmyweight.data.db.enums.SetType
 import com.kps.trackmyweight.data.repository.ExerciseRepository
+import com.kps.trackmyweight.data.repository.WeightRepository
 import com.kps.trackmyweight.data.repository.WorkoutRepository
 import com.kps.trackmyweight.domain.calc.RestTime
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,6 +37,8 @@ data class SessionActiveUiState(
     val session: WorkoutSessionEntity? = null,
     val exercises: List<ExerciseCard> = emptyList(),
     val allExercises: List<ExerciseEntity> = emptyList(),
+    val warmup: CardioSessionEntity? = null,
+    val bodyWeightKg: Float? = null,
     val restRemainingSec: Int = 0,
     val restTotalSec: Int = 0,
     val isFinishing: Boolean = false,
@@ -45,6 +50,7 @@ data class SessionActiveUiState(
 class SessionActiveViewModel @Inject constructor(
     private val workoutRepo: WorkoutRepository,
     private val exerciseRepo: ExerciseRepository,
+    private val weightRepo: WeightRepository,
     savedState: SavedStateHandle,
 ) : ViewModel() {
 
@@ -59,7 +65,7 @@ class SessionActiveViewModel @Inject constructor(
 
     private fun refresh() {
         viewModelScope.launch {
-            val session = workoutRepo.getActiveOrLatestSession()
+            val session = workoutRepo.getSession(sessionId) ?: workoutRepo.getActiveOrLatestSession()
             val perfList = workoutRepo.performedExercisesForSession(sessionId)
             val cards = perfList.map { pe ->
                 val ex = exerciseRepo.getById(pe.exerciseId)
@@ -68,9 +74,26 @@ class SessionActiveViewModel @Inject constructor(
                 ExerciseCard(pe, ex, sets, last)
             }
             val all = exerciseRepo.observeAll().first()
+            val warmup = session?.warmupCardioSessionId?.let { workoutRepo.getCardio(it) }
+            val weight = weightRepo.observeLast().first()?.weightKg
             _state.update {
-                it.copy(session = session, exercises = cards, allExercises = all)
+                it.copy(
+                    session = session,
+                    exercises = cards,
+                    allExercises = all,
+                    warmup = warmup,
+                    bodyWeightKg = weight,
+                )
             }
+        }
+    }
+
+    fun logWarmup(type: CardioType, durationMin: Int, rpe: Float?) {
+        viewModelScope.launch {
+            val body = _state.value.bodyWeightKg ?: 70f
+            runCatching { workoutRepo.logWarmupCardio(sessionId, type, durationMin, body, rpe) }
+                .onSuccess { refresh() }
+                .onFailure { e -> _state.update { it.copy(errorMessage = e.message) } }
         }
     }
 

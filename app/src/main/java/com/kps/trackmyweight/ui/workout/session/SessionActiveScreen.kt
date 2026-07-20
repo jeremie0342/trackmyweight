@@ -49,9 +49,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kps.trackmyweight.data.db.entity.CardioSessionEntity
 import com.kps.trackmyweight.data.db.entity.ExerciseEntity
+import com.kps.trackmyweight.data.db.enums.CardioType
+import com.kps.trackmyweight.ui.common.ChoiceTile
 import com.kps.trackmyweight.ui.common.NumericField
 import com.kps.trackmyweight.ui.common.PrimaryButton
+import com.kps.trackmyweight.ui.workout.cardio.labelFr
 
 @Composable
 fun SessionActiveScreen(
@@ -66,6 +70,7 @@ fun SessionActiveScreen(
 
     var showFinishDialog by remember { mutableStateOf(false) }
     var showAddExerciseSheet by remember { mutableStateOf(false) }
+    var showWarmupDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -97,6 +102,11 @@ fun SessionActiveScreen(
                     Text("Terminer")
                 }
             }
+
+            WarmupSection(
+                warmup = state.warmup,
+                onAdd = { showWarmupDialog = true },
+            )
 
             if (state.restTotalSec > 0 && state.restRemainingSec > 0) {
                 RestTimerCard(
@@ -141,6 +151,87 @@ fun SessionActiveScreen(
             onPick = { id -> vm.addExercise(id); showAddExerciseSheet = false },
         )
     }
+
+    if (showWarmupDialog) {
+        WarmupDialog(
+            onDismiss = { showWarmupDialog = false },
+            onConfirm = { type, min, rpe ->
+                vm.logWarmup(type, min, rpe)
+                showWarmupDialog = false
+            },
+        )
+    }
+}
+
+@Composable
+private fun WarmupSection(warmup: CardioSessionEntity?, onAdd: () -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                "Échauffement cardio",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (warmup == null) {
+                Text(
+                    "15-20 min de cardio léger avant la muscu.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                TextButton(onClick = onAdd) {
+                    Icon(Icons.Outlined.Add, null)
+                    Spacer(Modifier.padding(horizontal = 4.dp))
+                    Text("Ajouter un échauffement")
+                }
+            } else {
+                Text(
+                    "${warmup.type.labelFr()} · ${warmup.durationSec / 60} min · ~${warmup.caloriesEstimated.toInt()} kcal",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                )
+                TextButton(onClick = onAdd) { Text("Remplacer") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WarmupDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (CardioType, Int, Float?) -> Unit,
+) {
+    var type by remember { mutableStateOf(CardioType.ELLIPTICAL) }
+    var duration by remember { mutableStateOf("15") }
+    var rpe by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Échauffement cardio") },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.height(480.dp).verticalScroll(rememberScrollState()),
+            ) {
+                Text("Type", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                CardioType.entries.forEach { t ->
+                    ChoiceTile(title = t.labelFr(), selected = type == t, onClick = { type = t })
+                }
+                NumericField(label = "Durée", valueText = duration, suffix = "min", onValueChange = { duration = it })
+                NumericField(label = "RPE (optionnel)", valueText = rpe, onValueChange = { rpe = it })
+            }
+        },
+        confirmButton = {
+            PrimaryButton(
+                text = "Ajouter",
+                enabled = (duration.toIntOrNull() ?: 0) > 0,
+                onClick = { onConfirm(type, duration.toInt(), rpe.toFloatOrNull()) },
+            )
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } },
+    )
 }
 
 @Composable

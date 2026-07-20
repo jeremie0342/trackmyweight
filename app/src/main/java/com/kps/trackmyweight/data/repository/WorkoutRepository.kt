@@ -4,14 +4,19 @@ import androidx.room.withTransaction
 import com.kps.trackmyweight.data.db.TrackMyWeightDatabase
 import com.kps.trackmyweight.data.db.dao.ExerciseDao
 import com.kps.trackmyweight.data.db.dao.WorkoutDao
+import com.kps.trackmyweight.data.db.entity.CardioBlockEntity
 import com.kps.trackmyweight.data.db.entity.PerformedExerciseEntity
 import com.kps.trackmyweight.data.db.entity.PerformedSetEntity
 import com.kps.trackmyweight.data.db.entity.PersonalRecordEntity
 import com.kps.trackmyweight.data.db.entity.TemplateExerciseEntity
 import com.kps.trackmyweight.data.db.entity.WorkoutSessionEntity
 import com.kps.trackmyweight.data.db.entity.WorkoutTemplateEntity
+import com.kps.trackmyweight.data.db.enums.CardioSource
+import com.kps.trackmyweight.data.db.enums.CardioType
 import com.kps.trackmyweight.data.db.enums.PrKind
 import com.kps.trackmyweight.data.db.enums.SetType
+import com.kps.trackmyweight.data.db.entity.CardioSessionEntity
+import com.kps.trackmyweight.domain.calc.MetCalories
 import com.kps.trackmyweight.domain.calc.OneRepMax
 import com.kps.trackmyweight.domain.calc.PrDetector
 import kotlinx.coroutines.flow.Flow
@@ -207,6 +212,53 @@ class WorkoutRepository @Inject constructor(
 
     suspend fun getActiveOrLatestSession(): WorkoutSessionEntity? =
         workoutDao.observeRecentSessions(1).first().firstOrNull()
+
+    suspend fun getSession(id: Long): WorkoutSessionEntity? = workoutDao.getSession(id)
+
+    /**
+     * Log un échauffement cardio lié à la séance de muscu et met à jour
+     * `warmupCardioSessionId`. Si un warmup existait déjà, l'ancienne CardioSession
+     * est laissée telle quelle (garde l'historique) et remplacée par la nouvelle.
+     */
+    suspend fun logWarmupCardio(
+        sessionId: Long,
+        type: CardioType,
+        durationMin: Int,
+        bodyWeightKg: Float,
+        rpe: Float? = null,
+    ): Long = db.withTransaction {
+        val now = Clock.System.now()
+        val date = now.toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val kcal = MetCalories.estimate(type, durationMin * 60, bodyWeightKg, rpe)
+        val cardioId = workoutDao.insertCardio(
+            CardioSessionEntity(
+                date = date,
+                startedAt = now,
+                endedAt = now,
+                type = type,
+                durationSec = durationMin * 60,
+                avgRpe = rpe,
+                caloriesEstimated = kcal.toFloat(),
+                source = CardioSource.MANUAL,
+                notes = "Échauffement séance #$sessionId",
+                createdAt = now,
+            )
+        )
+        workoutDao.insertCardioBlock(
+            CardioBlockEntity(
+                sessionId = cardioId,
+                orderIndex = 0,
+                type = type,
+                durationSec = durationMin * 60,
+                avgRpe = rpe,
+                caloriesEstimated = kcal.toFloat(),
+            )
+        )
+        workoutDao.setWarmupCardio(sessionId, cardioId)
+        cardioId
+    }
+
+    suspend fun getCardio(id: Long): CardioSessionEntity? = workoutDao.getCardioSession(id)
 
     // ─────── Rotation resolution ───────
 

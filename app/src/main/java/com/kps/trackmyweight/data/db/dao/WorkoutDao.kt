@@ -118,6 +118,9 @@ interface WorkoutDao {
     @Query("SELECT * FROM workout_session WHERE id = :id AND deletedAt IS NULL LIMIT 1")
     suspend fun getSession(id: Long): WorkoutSessionEntity?
 
+    @Query("UPDATE workout_session SET warmupCardioSessionId = :cardioId WHERE id = :sessionId")
+    suspend fun setWarmupCardio(sessionId: Long, cardioId: Long?)
+
     @Query("SELECT * FROM workout_session WHERE date = :date AND deletedAt IS NULL")
     suspend fun getSessionsOnDate(date: LocalDate): List<WorkoutSessionEntity>
 
@@ -178,6 +181,9 @@ interface WorkoutDao {
 
     @Query("SELECT * FROM cardio_session ORDER BY date DESC LIMIT :limit")
     fun observeRecentCardio(limit: Int = 30): Flow<List<CardioSessionEntity>>
+
+    @Query("SELECT * FROM cardio_session WHERE id = :id LIMIT 1")
+    suspend fun getCardioSession(id: Long): CardioSessionEntity?
 
     @Query("SELECT * FROM cardio_session WHERE date >= :from AND date <= :to ORDER BY date")
     suspend fun getCardioInRange(from: LocalDate, to: LocalDate): List<CardioSessionEntity>

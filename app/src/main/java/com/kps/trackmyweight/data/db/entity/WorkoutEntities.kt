@@ -151,6 +151,7 @@ data class WorkoutSessionEntity(
     val totalVolumeKg: Float = 0f,
     val totalCalories: Float = 0f,
     val isCoachProgram: Boolean = false,
+    val warmupCardioSessionId: Long? = null,
     val deletedAt: Instant? = null,
 )
 
