@@ -38,6 +38,7 @@ import com.kps.trackmyweight.ui.measurements.MeasurementsScreen
 import com.kps.trackmyweight.ui.nutrition.NutritionScreen
 import com.kps.trackmyweight.ui.photos.CameraCaptureScreen
 import com.kps.trackmyweight.ui.photos.PhotosScreen
+import com.kps.trackmyweight.ui.pulse.PulsePpgScreen
 import com.kps.trackmyweight.ui.reports.ReportsScreen
 import com.kps.trackmyweight.ui.settings.SettingsScreen
 import com.kps.trackmyweight.ui.weight.WeightScreen
@@ -123,6 +124,9 @@ fun AppNavHost(navController: NavHostController) {
         }
         composable("goal") { GoalScreen(onBack = { navController.popBackStack() }) }
         composable("habits") { HabitsScreen(onBack = { navController.popBackStack() }) }
+        composable("pulse_ppg") {
+            PulsePpgScreen(onBack = { navController.popBackStack() })
+        }
     }
 }
 
@@ -156,7 +160,10 @@ private fun RootPagerScreen(navController: NavHostController) {
         ) { page ->
             Box(modifier = Modifier.fillMaxSize()) {
                 when (TopLevel.entries[page]) {
-                    TopLevel.HOME -> HomeScreen(onOpenReports = { navController.navigate("reports") })
+                    TopLevel.HOME -> HomeScreen(
+                        onOpenReports = { navController.navigate("reports") },
+                        onOpenPulsePpg = { navController.navigate("pulse_ppg") },
+                    )
                     TopLevel.WORKOUT -> WorkoutOverviewScreen(
                         onStartSession = { sessionId -> navController.navigate("session/$sessionId") },
                         onEditTemplate = { id -> navController.navigate("template/${id ?: 0L}") },

@@ -49,6 +49,7 @@ import com.kps.trackmyweight.ui.common.PrimaryButton
 @Composable
 fun HomeScreen(
     onOpenReports: () -> Unit = {},
+    onOpenPulsePpg: () -> Unit = {},
     vm: HomeViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
@@ -111,6 +112,7 @@ fun HomeScreen(
         PulseDialog(
             onDismiss = { showPulse = false },
             onLog = { bpm -> vm.logPulse(bpm); showPulse = false },
+            onMeasureWithCamera = { showPulse = false; onOpenPulsePpg() },
         )
     }
     if (showReadinessHelp) {
@@ -416,16 +418,24 @@ private fun WaterDialog(onDismiss: () -> Unit, onLog: (Int) -> Unit) {
 }
 
 @Composable
-private fun PulseDialog(onDismiss: () -> Unit, onLog: (Int) -> Unit) {
+private fun PulseDialog(onDismiss: () -> Unit, onLog: (Int) -> Unit, onMeasureWithCamera: () -> Unit) {
     var text by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Pouls au repos") },
         text = {
-            com.kps.trackmyweight.ui.common.NumericField(
-                label = "BPM (bat/min)", valueText = text,
-                onValueChange = { text = it },
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    "Deux options :\n• Compte tes battements 15 s × 4 et tape le chiffre.\n• Ou pose ton doigt sur le flash + capteur, on mesure pour toi.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                com.kps.trackmyweight.ui.common.NumericField(
+                    label = "BPM (bat/min)", valueText = text,
+                    onValueChange = { text = it },
+                )
+                TextButton(onClick = onMeasureWithCamera) { Text("Mesurer avec la caméra →") }
+            }
         },
         confirmButton = {
             PrimaryButton(
