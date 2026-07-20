@@ -73,7 +73,24 @@ object PulsePpgDetector {
         }
         if (peaks.size < 4) return null
 
-        val intervals = IntArray(peaks.size - 1) { peaks[it + 1] - peaks[it] }.toList()
+        var intervals = IntArray(peaks.size - 1) { peaks[it + 1] - peaks[it] }.toList()
+
+        // 3.5) Correction "harmonique dicrotique" :
+        // Si les intervalles alternent (impair / pair très différents), c'est qu'on capte
+        // les demi-pics secondaires — on fusionne tous les 2 pics pour retrouver le vrai BPM.
+        if (intervals.size >= 6) {
+            val odd = intervals.filterIndexed { i, _ -> i % 2 == 0 }
+            val even = intervals.filterIndexed { i, _ -> i % 2 == 1 }
+            if (odd.isNotEmpty() && even.isNotEmpty()) {
+                val oddMean = odd.average()
+                val evenMean = even.average()
+                val ratio = max(oddMean, evenMean) / min(oddMean, evenMean)
+                if (ratio > 1.5) {
+                    // Fusionne : on garde 1 pic sur 2 (l'algo avait doublé les pics)
+                    intervals = intervals.chunked(2).map { it.sum() }
+                }
+            }
+        }
 
         // 4) Rejet des outliers : garde uniquement les intervalles dans ±40 % de la médiane
         val median = intervals.sorted().let { it[it.size / 2] }.toFloat()
