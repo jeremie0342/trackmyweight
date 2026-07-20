@@ -42,6 +42,21 @@ interface NutritionDao {
     @Query("SELECT * FROM food WHERE region = :region ORDER BY name LIMIT :limit")
     fun observeFoodsByRegion(region: FoodRegion, limit: Int = 500): Flow<List<FoodEntity>>
 
+    /** Liste par défaut à afficher quand la recherche est vide : régions locales d'abord. */
+    @Query("""
+        SELECT * FROM food
+        ORDER BY
+            CASE region
+                WHEN 'BENIN' THEN 0
+                WHEN 'WEST_AFRICA' THEN 1
+                WHEN 'INTERNATIONAL' THEN 2
+                ELSE 3
+            END,
+            name
+        LIMIT :limit
+    """)
+    suspend fun browseFoods(limit: Int = 60): List<FoodEntity>
+
     /** Recherche FTS insensible aux accents. */
     @Query("""
         SELECT f.* FROM food f

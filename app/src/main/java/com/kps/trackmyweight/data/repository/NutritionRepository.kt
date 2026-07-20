@@ -76,7 +76,8 @@ class NutritionRepository @Inject constructor(
         val safe = query.trim().replace("'", " ").replace("\"", " ")
             .split(Regex("\\s+")).filter { it.isNotBlank() }
             .joinToString(" ") { "$it*" }
-        if (safe.isEmpty()) return emptyList()
+        // Query vide → on affiche une liste par défaut browsable (Bénin d'abord).
+        if (safe.isEmpty()) return runCatching { nutritionDao.browseFoods(limit) }.getOrDefault(emptyList())
         return runCatching { nutritionDao.searchFoods(safe, limit) }.getOrDefault(emptyList())
     }
 
