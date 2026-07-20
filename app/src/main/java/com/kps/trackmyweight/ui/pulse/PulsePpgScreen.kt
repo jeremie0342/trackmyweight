@@ -121,7 +121,13 @@ class PulsePpgViewModel @Inject constructor(
         // ou trop basse pendant plusieurs secondes.
         if (samples.size == 30) {
             val avg = samples.average()
+            android.util.Log.d("PPG", "premiers 30 samples : luminanceMoy=%.1f min=%.1f max=%.1f".format(avg, samples.min(), samples.max()))
             _state.update { it.copy(fingerNotDetected = avg > 220.0 || avg < 20.0) }
+        }
+        // Tick d'avancement chaque ~150 samples (~5 s à 30 fps)
+        if (samples.size % 150 == 0) {
+            val recent = samples.takeLast(150)
+            android.util.Log.d("PPG", "tick ${samples.size} samples : moy=%.1f min=%.1f max=%.1f amplitude=%.1f".format(recent.average(), recent.min(), recent.max(), recent.max() - recent.min()))
         }
     }
 
@@ -129,6 +135,17 @@ class PulsePpgViewModel @Inject constructor(
         val elapsedSec = ((System.nanoTime() - startTimeNanos) / 1_000_000_000L).toFloat()
         val fps = if (elapsedSec > 0f) samples.size / elapsedSec else 0f
         val verdict = PulsePpgDetector.estimate(samples.toList(), fps)
+        if (verdict != null) {
+            val d = verdict.debug
+            android.util.Log.i(
+                "PPG",
+                "BPM=${verdict.bpm} qualite=%.2f | samples=${d.sampleCount} fps=%.1f | luminanceMoy=%.1f amplitude=%.1f | pics_bruts=${d.rawPeaks} pics_final=${verdict.peaksDetected} intervals_gardes=${d.intervalsKept} | provBPM=%.1f heightR=%.2f intervalR=%.2f | fusion=${d.fusionApplied} (${d.fusionReason})".format(
+                    verdict.quality, d.sampleRateHz, d.meanLuminance, d.amplitude, d.provisionalBpm, d.heightRatio, d.intervalRatio,
+                ),
+            )
+        } else {
+            android.util.Log.w("PPG", "estimate=null | samples=${samples.size} elapsedSec=%.1f fps=%.1f luminanceMoy=%.1f".format(elapsedSec, fps, samples.map { it.toDouble() }.average().toFloat()))
+        }
         _state.update {
             if (verdict == null) {
                 it.copy(
