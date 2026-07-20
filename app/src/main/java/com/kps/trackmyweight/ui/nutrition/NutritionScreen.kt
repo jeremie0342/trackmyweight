@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kps.trackmyweight.data.db.entity.FoodEntity
 import com.kps.trackmyweight.data.db.entity.FoodPortionAliasEntity
+import com.kps.trackmyweight.data.db.enums.CookingMethod
 import com.kps.trackmyweight.data.db.enums.DietPhaseKind
 import com.kps.trackmyweight.data.db.enums.FoodCategory
 import com.kps.trackmyweight.data.db.enums.MealType
@@ -114,8 +115,8 @@ fun NutritionScreen(vm: NutritionViewModel = hiltViewModel()) {
             search = { q -> vm.searchFoods(q) },
             loadAliases = { id -> vm.aliasesFor(id) },
             onDismiss = { showAddDialog = null },
-            onConfirm = { foodId, mode, qty ->
-                vm.addEntry(currentDialog, foodId, mode, qty)
+            onConfirm = { foodId, mode, qty, cook ->
+                vm.addEntry(currentDialog, foodId, mode, qty, cook)
                 showAddDialog = null
             },
         )
@@ -297,7 +298,7 @@ private fun AddEntryDialog(
     search: suspend (String) -> List<FoodEntity>,
     loadAliases: suspend (Long) -> List<FoodPortionAliasEntity>,
     onDismiss: () -> Unit,
-    onConfirm: (Long, PortionMode, Float) -> Unit,
+    onConfirm: (Long, PortionMode, Float, CookingMethod?) -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
     var results by remember { mutableStateOf<List<FoodEntity>>(emptyList()) }
@@ -305,6 +306,7 @@ private fun AddEntryDialog(
     var aliases by remember { mutableStateOf<List<FoodPortionAliasEntity>>(emptyList()) }
     var mode by remember { mutableStateOf(PortionMode.SERVING) }
     var quantityText by remember { mutableStateOf("1") }
+    var cooking by remember { mutableStateOf<CookingMethod?>(null) }
 
     LaunchedEffect(query) { results = search(query) }
     LaunchedEffect(picked?.id) {
@@ -312,6 +314,7 @@ private fun AddEntryDialog(
         aliases = if (f != null) loadAliases(f.id) else emptyList()
         mode = PortionMode.SERVING
         quantityText = "1"
+        cooking = null
     }
 
     AlertDialog(
@@ -361,6 +364,18 @@ private fun AddEntryDialog(
                         valueText = quantityText,
                         onValueChange = { quantityText = it },
                     )
+
+                    Text("Cuisson", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "Ajoute uniquement si tu as ajouté de l'huile (sauté = +5% huile, frit = +10%).",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        CookingChip("Nature", cooking == null) { cooking = null }
+                        CookingChip("Sauté", cooking == CookingMethod.SAUTEED) { cooking = CookingMethod.SAUTEED }
+                        CookingChip("Frit", cooking == CookingMethod.FRIED) { cooking = CookingMethod.FRIED }
+                    }
                 }
             }
         },
@@ -370,7 +385,7 @@ private fun AddEntryDialog(
                     text = "Ajouter",
                     onClick = {
                         val q = quantityText.toFloatOrNull() ?: return@PrimaryButton
-                        onConfirm(picked!!.id, mode, q)
+                        onConfirm(picked!!.id, mode, q, cooking)
                     },
                     enabled = quantityText.toFloatOrNull() != null,
                 )
@@ -432,6 +447,22 @@ private fun buildPortionOptions(
         }
     }
     return out
+}
+
+@Composable
+private fun CookingChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    val bg = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest
+    val fg = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+    Text(
+        label,
+        style = MaterialTheme.typography.labelMedium,
+        color = fg,
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(bg)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+    )
 }
 
 internal fun PortionMode.labelFr() = when (this) {

@@ -121,10 +121,11 @@ class NutritionViewModel @Inject constructor(
         foodId: Long,
         mode: PortionMode,
         quantity: Float,
+        cookingMethod: com.kps.trackmyweight.data.db.enums.CookingMethod? = null,
     ) {
         viewModelScope.launch {
             runCatching {
-                nutritionRepo.addEntry(_date.value, mealType, foodId, mode, quantity)
+                nutritionRepo.addEntry(_date.value, mealType, foodId, mode, quantity, cookingMethod)
             }
             _refreshTrigger.update { it + 1 }
         }

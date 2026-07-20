@@ -5,6 +5,7 @@ import androidx.room.Fts4
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.kps.trackmyweight.data.db.enums.CookingMethod
 import com.kps.trackmyweight.data.db.enums.DietPhaseKind
 import com.kps.trackmyweight.data.db.enums.FoodCategory
 import com.kps.trackmyweight.data.db.enums.FoodRegion
@@ -114,7 +115,9 @@ data class MealEntryEntity(
     val portionMode: PortionMode,
     val portionQuantity: Float,
     val resolvedGrams: Float,
-    // Snapshots figés au moment de la saisie
+    /** Méthode de cuisson choisie. NULL = pas d'ajustement (aliment déjà décrit tel quel). */
+    val cookingMethod: CookingMethod? = null,
+    // Snapshots figés au moment de la saisie (incluent déjà l'impact de la cuisson)
     val snapKcal: Float,
     val snapProteinG: Float,
     val snapCarbsG: Float,

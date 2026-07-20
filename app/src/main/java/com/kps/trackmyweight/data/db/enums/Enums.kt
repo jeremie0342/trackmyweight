@@ -104,6 +104,21 @@ enum class PortionMode {
     CUP, GLASS, BOWL, PIECE, PLATE, SLICE,
 }
 
+/**
+ * Mode de cuisson d'une portion. Impacte les kcal/lipides (huile absorbée pour la friture).
+ *  - RAW : cru
+ *  - BOILED : bouilli / à l'eau
+ *  - STEAMED : à la vapeur
+ *  - GRILLED : grillé / braisé (pas d'ajout d'huile)
+ *  - BAKED : au four
+ *  - SAUTEED : sauté à la poêle avec un peu d'huile (~5%)
+ *  - FRIED : frit / bain d'huile (~10% du poids en huile absorbée)
+ */
+@Serializable
+enum class CookingMethod {
+    RAW, BOILED, STEAMED, GRILLED, BAKED, SAUTEED, FRIED,
+}
+
 @Serializable enum class WaterSource { MANUAL, HEALTH_CONNECT }
 
 @Serializable

@@ -123,7 +123,7 @@ import com.kps.trackmyweight.data.db.entity.WorkoutTemplateEntity
         BackupRecordEntity::class,
         AppEventEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)

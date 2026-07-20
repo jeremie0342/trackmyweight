@@ -11,9 +11,11 @@ import com.kps.trackmyweight.data.db.entity.FoodEntity
 import com.kps.trackmyweight.data.db.entity.FoodPortionAliasEntity
 import com.kps.trackmyweight.data.db.entity.MealEntity
 import com.kps.trackmyweight.data.db.entity.MealEntryEntity
+import com.kps.trackmyweight.data.db.enums.CookingMethod
 import com.kps.trackmyweight.data.db.enums.MealType
 import com.kps.trackmyweight.data.db.enums.PortionMode
 import com.kps.trackmyweight.data.seed.FoodSeed
+import com.kps.trackmyweight.domain.calc.CookingImpact
 import com.kps.trackmyweight.domain.calc.MacroCalculator
 import com.kps.trackmyweight.domain.calc.PortionResolver
 import kotlinx.coroutines.flow.Flow
@@ -104,6 +106,7 @@ class NutritionRepository @Inject constructor(
         foodId: Long,
         portionMode: PortionMode,
         portionQuantity: Float,
+        cookingMethod: CookingMethod? = null,
         aliasGramsForMode: Float? = null,
     ): Long = db.withTransaction {
         val now = Clock.System.now()
@@ -119,7 +122,7 @@ class NutritionRepository @Inject constructor(
             defaultServingG = food.defaultServingG,
             category = food.category,
         )
-        val macros = MacroCalculator.snapshot(food, grams)
+        val macros = CookingImpact.apply(MacroCalculator.snapshot(food, grams), cookingMethod, grams)
 
         val existingMeal = nutritionDao.observeMealsOnDate(date).first()
             .firstOrNull { it.mealType == mealType }
@@ -139,6 +142,7 @@ class NutritionRepository @Inject constructor(
                 portionMode = portionMode,
                 portionQuantity = portionQuantity,
                 resolvedGrams = grams,
+                cookingMethod = cookingMethod,
                 snapKcal = macros.kcal,
                 snapProteinG = macros.proteinG,
                 snapCarbsG = macros.carbsG,
