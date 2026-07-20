@@ -150,6 +150,7 @@ class OnboardingViewModel @Inject constructor(
                         updatedAt = now,
                     ),
                     targets = targets,
+                    currentWeightKg = currentWeight,
                     gymName = if (s.skipGym) null else s.gymName.ifBlank { "Ma salle" },
                     equipmentIds = if (s.skipGym) emptySet() else s.selectedEquipmentIds,
                 )

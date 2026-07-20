@@ -26,18 +26,23 @@ class OnboardingRepository @Inject constructor(
     private val userRepo: UserProfileRepository,
     private val goalRepo: GoalRepository,
     private val gymRepo: GymRepository,
+    private val weightRepo: WeightRepository,
     private val nutritionDao: NutritionDao,
 ) {
     suspend fun completeOnboarding(
         profile: UserProfileEntity,
         goal: GoalEntity,
         targets: NutritionTargets,
+        currentWeightKg: Float,
         gymName: String?,
         equipmentIds: Set<Long>,
     ) {
         db.withTransaction {
             userRepo.save(profile)
             goalRepo.switchActive(goal)
+            // Enregistre la pesée initiale saisie à l'onboarding pour que le reste
+            // de l'app (cardio, coach, projections) ait un poids de référence.
+            weightRepo.log(date = todayLocal(), weightKg = currentWeightKg)
             if (!gymName.isNullOrBlank() && equipmentIds.isNotEmpty()) {
                 gymRepo.createGymWithEquipment(gymName, equipmentIds, makeDefault = true)
             }

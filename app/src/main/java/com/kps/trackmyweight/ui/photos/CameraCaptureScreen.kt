@@ -15,6 +15,8 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -171,10 +173,10 @@ fun CameraCaptureScreen(
             )
         }
 
-        // Bouton fermer en haut à gauche
+        // Bouton fermer en haut à gauche (padding barre statut pour ne pas se confondre avec la barre système)
         IconButton(
             onClick = onDone,
-            modifier = Modifier.align(Alignment.TopStart).padding(8.dp),
+            modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(8.dp),
         ) {
             Icon(
                 Icons.Outlined.Close,
@@ -184,7 +186,11 @@ fun CameraCaptureScreen(
         }
 
         Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 16.dp, start = 64.dp, end = 16.dp).align(Alignment.TopCenter),
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.TopCenter)
+                .statusBarsPadding()
+                .padding(top = 16.dp, start = 64.dp, end = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             PhotoAngle.entries.forEach { a ->
@@ -209,7 +215,11 @@ fun CameraCaptureScreen(
         }
 
         Row(
-            modifier = Modifier.fillMaxWidth().padding(24.dp).align(Alignment.BottomCenter),
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(24.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
