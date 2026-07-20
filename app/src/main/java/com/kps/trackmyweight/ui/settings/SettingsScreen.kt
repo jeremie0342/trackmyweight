@@ -98,6 +98,7 @@ class SettingsViewModel @Inject constructor(
 fun SettingsScreen(
     onOpenGyms: () -> Unit = {},
     onOpenGoal: () -> Unit = {},
+    onOpenHabits: () -> Unit = {},
     vm: SettingsViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
@@ -158,6 +159,23 @@ fun SettingsScreen(
                     Text("Mon objectif", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
                     Text(
                         "Vois ton profil, ton objectif, ta phase (CUT / RECOMP / MAINTENANCE / BULK). Change de phase pour recalculer instantanément tes cibles caloriques.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                shape = RoundedCornerShape(20.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onOpenHabits() },
+            ) {
+                Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Mes habitudes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                    Text(
+                        "Active / désactive / ajoute des habitudes. Règle les cibles quotidiennes d'eau (L), de pas et d'autres.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

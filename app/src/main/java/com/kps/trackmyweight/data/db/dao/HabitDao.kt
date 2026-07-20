@@ -34,6 +34,15 @@ interface HabitDao {
     @Query("SELECT * FROM habit_definition WHERE isActive = 1 ORDER BY orderIndex")
     fun observeActiveHabits(): Flow<List<HabitDefinitionEntity>>
 
+    @Query("SELECT * FROM habit_definition ORDER BY isActive DESC, orderIndex")
+    fun observeAllHabits(): Flow<List<HabitDefinitionEntity>>
+
+    @Upsert
+    suspend fun upsertHabitDefinition(def: HabitDefinitionEntity): Long
+
+    @Query("DELETE FROM habit_definition WHERE id = :id")
+    suspend fun deleteHabitDefinition(id: Long)
+
     @Upsert
     suspend fun upsertCompletion(c: HabitCompletionEntity)
 

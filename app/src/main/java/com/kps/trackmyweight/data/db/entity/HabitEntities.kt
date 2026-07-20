@@ -36,6 +36,10 @@ data class HabitDefinitionEntity(
     val displayName: String,
     val iconKey: String? = null,
     val targetPerWeek: Int? = null,
+    /** Cible quotidienne mesurable (ex : 2.0 pour "2L d'eau", 10000 pour "10k pas"). */
+    val dailyTarget: Float? = null,
+    /** Unité de la cible quotidienne (ex : "L", "pas", "h"). */
+    val unit: String? = null,
     val isActive: Boolean = true,
     val orderIndex: Int = 0,
 )

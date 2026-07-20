@@ -37,7 +37,29 @@ class HabitRepository @Inject constructor(
     }
 
     fun observeHabits(): Flow<List<HabitDefinitionEntity>> = habitDao.observeActiveHabits()
+    fun observeAllHabits(): Flow<List<HabitDefinitionEntity>> = habitDao.observeAllHabits()
     fun observeCompletionsForDate(date: LocalDate): Flow<List<HabitCompletionEntity>> = habitDao.observeCompletionsForDate(date)
+
+    suspend fun saveHabit(def: HabitDefinitionEntity): Long = habitDao.upsertHabitDefinition(def)
+    suspend fun deleteHabit(id: Long) = habitDao.deleteHabitDefinition(id)
+    suspend fun setActive(id: Long, active: Boolean) {
+        val current = habitDao.observeAllHabits().first().firstOrNull { it.id == id } ?: return
+        habitDao.upsertHabitDefinition(current.copy(isActive = active))
+    }
+
+    /** Cible d'eau quotidienne (mL) définie par l'habitude "water_2L" (ou similaire, `unit == "L"`). */
+    suspend fun dailyWaterMlTarget(defaultMl: Int = 2500): Int {
+        val habit = habitDao.observeAllHabits().first()
+            .firstOrNull { it.unit == "L" && it.dailyTarget != null && it.isActive }
+        return habit?.dailyTarget?.let { (it * 1000f).toInt() } ?: defaultMl
+    }
+
+    /** Cible de pas quotidienne définie par l'habitude "steps" (unit == "pas"). */
+    suspend fun dailyStepsTarget(defaultCount: Int = 10000): Int {
+        val habit = habitDao.observeAllHabits().first()
+            .firstOrNull { it.unit == "pas" && it.dailyTarget != null && it.isActive }
+        return habit?.dailyTarget?.toInt() ?: defaultCount
+    }
 
     suspend fun toggleCompletion(habitId: Long, date: LocalDate, done: Boolean) {
         habitDao.upsertCompletion(HabitCompletionEntity(habitId, date, isDone = done))

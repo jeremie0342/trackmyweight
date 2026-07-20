@@ -24,6 +24,7 @@ import com.kps.trackmyweight.ui.corps.CorpsHubScreen
 import com.kps.trackmyweight.ui.goal.GoalScreen
 import com.kps.trackmyweight.ui.gyms.GymEditScreen
 import com.kps.trackmyweight.ui.gyms.GymsScreen
+import com.kps.trackmyweight.ui.habits.HabitsScreen
 import com.kps.trackmyweight.ui.home.HomeScreen
 import com.kps.trackmyweight.ui.measurements.MeasurementsScreen
 import com.kps.trackmyweight.ui.nutrition.NutritionScreen
@@ -147,9 +148,11 @@ fun AppNavHost(
             SettingsScreen(
                 onOpenGyms = { navController.navigate("gyms") },
                 onOpenGoal = { navController.navigate("goal") },
+                onOpenHabits = { navController.navigate("habits") },
             )
         }
         composable("goal") { GoalScreen(onBack = { navController.popBackStack() }) }
+        composable("habits") { HabitsScreen(onBack = { navController.popBackStack() }) }
         composable("gyms") {
             GymsScreen(
                 onBack = { navController.popBackStack() },

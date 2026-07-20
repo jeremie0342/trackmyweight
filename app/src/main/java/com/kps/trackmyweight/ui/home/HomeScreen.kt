@@ -55,6 +55,7 @@ fun HomeScreen(
     var showReadiness by remember { mutableStateOf(false) }
     var showWater by remember { mutableStateOf(false) }
     var showPulse by remember { mutableStateOf(false) }
+    var showReadinessHelp by remember { mutableStateOf(false) }
 
     Scaffold(containerColor = MaterialTheme.colorScheme.background) { insets ->
         Column(
@@ -78,11 +79,11 @@ fun HomeScreen(
             )
 
             ReportsShortcut(onClick = onOpenReports)
-            ReadinessCard(state = state, onOpen = { showReadiness = true })
+            ReadinessCard(state = state, onOpen = { showReadiness = true }, onHelp = { showReadinessHelp = true })
             WeightSummary(state)
             MacrosSummary(state)
             SleepCard(state)
-            WaterCard(mlToday = state.waterMl, onAdd = { showWater = true })
+            WaterCard(mlToday = state.waterMl, targetMl = state.waterTargetMl, onAdd = { showWater = true })
             HabitsCard(state.habits, doneHabitIds = state.completions.filter { it.isDone }.map { it.habitId }.toSet(), onToggle = vm::toggleHabit)
             PulseCard(state.dailyLog?.restingHrBpm, onLog = { showPulse = true })
 
@@ -112,6 +113,30 @@ fun HomeScreen(
             onLog = { bpm -> vm.logPulse(bpm); showPulse = false },
         )
     }
+    if (showReadinessHelp) {
+        AlertDialog(
+            onDismissRequest = { showReadinessHelp = false },
+            title = { Text("Check-in matinal, comment ça marche ?") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        "Ton score sur 5 est la moyenne de 4 notes (1 à 5) que tu donnes en te levant :",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text("• Sommeil — qualité perçue (pas les heures)", style = MaterialTheme.typography.bodySmall)
+                    Text("• Énergie — 1 = à plat, 5 = pétant la forme", style = MaterialTheme.typography.bodySmall)
+                    Text("• Courbatures — 1 = très courbaturé, 5 = aucune", style = MaterialTheme.typography.bodySmall)
+                    Text("• Humeur — 1 = déprimé, 5 = excellent", style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        "\n< 2 = journée off · 2-2.8 = allège de 20-30% · 2.8-3.6 = standard · 3.6-4.4 = bonne forme · ≥ 4.4 = push day (vise des PRs).",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+            confirmButton = { TextButton(onClick = { showReadinessHelp = false }) { Text("Compris") } },
+        )
+    }
 }
 
 // ─────────── Cards ───────────
@@ -131,7 +156,7 @@ private fun ReportsShortcut(onClick: () -> Unit) {
 }
 
 @Composable
-private fun ReadinessCard(state: HomeUiState, onOpen: () -> Unit) {
+private fun ReadinessCard(state: HomeUiState, onOpen: () -> Unit, onHelp: () -> Unit) {
     val r = state.readiness
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
@@ -139,7 +164,10 @@ private fun ReadinessCard(state: HomeUiState, onOpen: () -> Unit) {
         modifier = Modifier.fillMaxWidth().clickable(onClick = onOpen),
     ) {
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Readiness", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Readiness", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                TextButton(onClick = onHelp) { Text("?") }
+            }
             if (r == null || r.filledDimensions == 0) {
                 Text("Fais ton check-in matinal", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("Tap pour saisir sommeil / énergie / courbatures / humeur", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -240,8 +268,7 @@ private fun SleepCard(state: HomeUiState) {
 }
 
 @Composable
-private fun WaterCard(mlToday: Int, onAdd: () -> Unit) {
-    val targetMl = 2500
+private fun WaterCard(mlToday: Int, targetMl: Int, onAdd: () -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         shape = RoundedCornerShape(20.dp),

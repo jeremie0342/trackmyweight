@@ -45,6 +45,8 @@ data class HomeUiState(
     val completions: List<HabitCompletionEntity> = emptyList(),
     val sleepEntry: SleepEntryEntity? = null,
     val waterMl: Int = 0,
+    val waterTargetMl: Int = 2500,
+    val stepsTarget: Int = 10000,
     val phase: DietPhaseEntity? = null,
     val kcalConsumed: Float = 0f,
     val proteinConsumed: Float = 0f,
@@ -106,6 +108,10 @@ class HomeViewModel @Inject constructor(
                 completions = comps,
                 sleepEntry = sleep,
                 waterMl = waterMl,
+                waterTargetMl = f.habits.firstOrNull { it.unit == "L" && it.dailyTarget != null }
+                    ?.dailyTarget?.let { (it * 1000f).toInt() } ?: 2500,
+                stepsTarget = f.habits.firstOrNull { it.unit == "pas" && it.dailyTarget != null }
+                    ?.dailyTarget?.toInt() ?: 10000,
             )
         }.combine(nutritionRepo.observeActivePhase()) { s, phase -> s.copy(phase = phase) }
             .combine(nutritionRepo.observeDailyMacros(_date.value)) { s, macros ->
