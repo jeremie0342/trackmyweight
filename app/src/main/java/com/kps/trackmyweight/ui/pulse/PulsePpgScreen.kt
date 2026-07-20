@@ -254,8 +254,9 @@ fun PulsePpgScreen(
                     Text("BPM", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     state.quality?.let { q ->
                         val level = when {
-                            q > 0.85f -> "Excellente qualité"
-                            q > 0.65f -> "Bonne qualité"
+                            q > 0.7f -> "Excellente qualité"
+                            q > 0.4f -> "Bonne qualité"
+                            q > 0.2f -> "Qualité correcte"
                             else -> "Signal faible — reprends si possible"
                         }
                         Text(level, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
