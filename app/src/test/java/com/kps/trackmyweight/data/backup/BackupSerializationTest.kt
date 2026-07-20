@@ -32,9 +32,9 @@ class BackupSerializationTest {
         assertEquals(root, decoded)
     }
 
-    @Test fun `schema version is 1`() {
-        assertEquals(1, BackupRoot.SCHEMA_VERSION)
-        assertEquals(1, sampleRoot().schemaVersion)
+    @Test fun `schema version is 2`() {
+        assertEquals(2, BackupRoot.SCHEMA_VERSION)
+        assertEquals(2, sampleRoot().schemaVersion)
     }
 
     @Test fun `decoded json is stable across encoders`() {
