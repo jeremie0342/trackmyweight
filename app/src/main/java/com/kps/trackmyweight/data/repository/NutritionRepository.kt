@@ -8,6 +8,7 @@ import com.kps.trackmyweight.data.db.entity.DietPhaseEntity
 import com.kps.trackmyweight.data.db.entity.FavoriteMealEntity
 import com.kps.trackmyweight.data.db.entity.FavoriteMealEntryEntity
 import com.kps.trackmyweight.data.db.entity.FoodEntity
+import com.kps.trackmyweight.data.db.entity.FoodPortionAliasEntity
 import com.kps.trackmyweight.data.db.entity.MealEntity
 import com.kps.trackmyweight.data.db.entity.MealEntryEntity
 import com.kps.trackmyweight.data.db.enums.MealType
@@ -48,8 +49,24 @@ class NutritionRepository @Inject constructor(
             com.kps.trackmyweight.data.db.enums.FoodRegion.BENIN, limit = 1
         ).first()
         if (currentFoods.isNotEmpty()) return
-        nutritionDao.insertFoods(FoodSeed.items(Clock.System.now()))
+        val now = Clock.System.now()
+        val seeded = FoodSeed.seeded(now)
+        db.withTransaction {
+            seeded.forEach { entry ->
+                val foodId = nutritionDao.upsertFood(entry.food)
+                if (entry.aliases.isNotEmpty()) {
+                    nutritionDao.setPortionAliases(
+                        entry.aliases.map { spec ->
+                            FoodPortionAliasEntity(foodId = foodId, mode = spec.mode, equivalentG = spec.grams)
+                        }
+                    )
+                }
+            }
+        }
     }
+
+    suspend fun getAliases(foodId: Long): List<FoodPortionAliasEntity> =
+        nutritionDao.getPortionAliases(foodId)
 
     // ── Foods ────────────────────────────────────────
     suspend fun searchFoods(query: String, limit: Int = 30): List<FoodEntity> {
@@ -91,10 +108,14 @@ class NutritionRepository @Inject constructor(
     ): Long = db.withTransaction {
         val now = Clock.System.now()
         val food = nutritionDao.getFood(foodId) ?: error("Food not found")
+        // Si l'appelant ne fournit pas d'alias explicite, on cherche automatiquement
+        // dans la table d'aliases spécifiques à l'aliment.
+        val effectiveAlias = aliasGramsForMode
+            ?: nutritionDao.getPortionAliases(foodId).firstOrNull { it.mode == portionMode }?.equivalentG
         val grams = PortionResolver.resolveGrams(
             mode = portionMode,
             quantity = portionQuantity,
-            aliasGramsForMode = aliasGramsForMode,
+            aliasGramsForMode = effectiveAlias,
             defaultServingG = food.defaultServingG,
             category = food.category,
         )

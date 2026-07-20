@@ -48,6 +48,20 @@ object PortionResolver {
         PortionMode.LADLE_LARGE -> 150f
         PortionMode.SPOON_TEA -> 5f
         PortionMode.SPOON_TABLE -> 15f
+        PortionMode.CUP -> 200f              // tasse de café/thé standard
+        PortionMode.GLASS -> 250f            // verre d'eau/jus
+        PortionMode.BOWL -> 250f             // bol de soupe/bouillie
+        PortionMode.PLATE -> when (category) {
+            FoodCategory.GRAIN -> 250f
+            FoodCategory.VEGETABLE -> 200f
+            else -> 300f
+        }
+        PortionMode.SLICE -> when (category) {
+            FoodCategory.GRAIN -> 30f        // tranche de pain
+            FoodCategory.FRUIT -> 100f       // tranche de fruit
+            else -> 50f
+        }
+        PortionMode.PIECE -> null           // toujours dépendant de l'aliment (via alias)
         PortionMode.UNIT -> null            // dépend totalement de l'aliment
         PortionMode.SERVING -> null
         PortionMode.PRECISE_G -> null

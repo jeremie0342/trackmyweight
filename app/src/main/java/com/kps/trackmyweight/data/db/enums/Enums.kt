@@ -101,6 +101,7 @@ enum class MealType {
 enum class PortionMode {
     PRECISE_G, PALM, FIST, THUMB, CUPPED_HAND, HANDFUL,
     LADLE_SMALL, LADLE_LARGE, SPOON_TEA, SPOON_TABLE, UNIT, SERVING,
+    CUP, GLASS, BOWL, PIECE, PLATE, SLICE,
 }
 
 @Serializable enum class WaterSource { MANUAL, HEALTH_CONNECT }

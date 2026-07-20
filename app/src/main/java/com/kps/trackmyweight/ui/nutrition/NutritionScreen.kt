@@ -34,7 +34,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,7 +42,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kps.trackmyweight.data.db.entity.FoodEntity
+import com.kps.trackmyweight.data.db.entity.FoodPortionAliasEntity
 import com.kps.trackmyweight.data.db.enums.DietPhaseKind
+import com.kps.trackmyweight.data.db.enums.FoodCategory
 import com.kps.trackmyweight.data.db.enums.MealType
 import com.kps.trackmyweight.data.db.enums.PortionMode
 import com.kps.trackmyweight.data.repository.MealWithEntries
@@ -111,6 +112,7 @@ fun NutritionScreen(vm: NutritionViewModel = hiltViewModel()) {
         AddEntryDialog(
             mealType = currentDialog,
             search = { q -> vm.searchFoods(q) },
+            loadAliases = { id -> vm.aliasesFor(id) },
             onDismiss = { showAddDialog = null },
             onConfirm = { foodId, mode, qty ->
                 vm.addEntry(currentDialog, foodId, mode, qty)
@@ -293,25 +295,30 @@ private fun MealSection(
 private fun AddEntryDialog(
     mealType: MealType,
     search: suspend (String) -> List<FoodEntity>,
+    loadAliases: suspend (Long) -> List<FoodPortionAliasEntity>,
     onDismiss: () -> Unit,
     onConfirm: (Long, PortionMode, Float) -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
     var results by remember { mutableStateOf<List<FoodEntity>>(emptyList()) }
     var picked by remember { mutableStateOf<FoodEntity?>(null) }
+    var aliases by remember { mutableStateOf<List<FoodPortionAliasEntity>>(emptyList()) }
     var mode by remember { mutableStateOf(PortionMode.SERVING) }
     var quantityText by remember { mutableStateOf("1") }
-    val scope = rememberCoroutineScope()
 
-    LaunchedEffect(query) {
-        results = search(query)
+    LaunchedEffect(query) { results = search(query) }
+    LaunchedEffect(picked?.id) {
+        val f = picked
+        aliases = if (f != null) loadAliases(f.id) else emptyList()
+        mode = PortionMode.SERVING
+        quantityText = "1"
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Ajouter à ${mealType.label()}") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.height(500.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.height(520.dp)) {
                 if (picked == null) {
                     TextField(label = "Rechercher un aliment", value = query, onValueChange = { query = it })
                     Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -338,23 +345,15 @@ private fun AddEntryDialog(
                         }
                     }
                 } else {
-                    Text(picked!!.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
-                    Text("Mode de portion", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        listOf(
-                            PortionMode.SERVING to "Portion standard (${picked!!.servingLabel ?: "${picked!!.defaultServingG.toInt()} g"})",
-                            PortionMode.PRECISE_G to "Grammes précis",
-                            PortionMode.PALM to "Paume (protéine)",
-                            PortionMode.FIST to "Poing (féculent)",
-                            PortionMode.THUMB to "Pouce (matière grasse)",
-                            PortionMode.LADLE_LARGE to "Grande louche",
-                            PortionMode.SPOON_TABLE to "Cuillère à soupe",
-                        ).forEach { (m, label) ->
-                            ChoiceTile(
-                                title = label,
-                                selected = mode == m,
-                                onClick = { mode = m },
-                            )
+                    val food = picked!!
+                    Text(food.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                    Text("Comment mesurer ta portion ?", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Column(
+                        modifier = Modifier.verticalScroll(rememberScrollState()).weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        buildPortionOptions(food, aliases).forEach { (m, label) ->
+                            ChoiceTile(title = label, selected = mode == m, onClick = { mode = m })
                         }
                     }
                     NumericField(
@@ -383,6 +382,77 @@ private fun AddEntryDialog(
             if (picked != null) TextButton(onClick = { picked = null }) { Text("← Retour") }
         },
     )
+}
+
+/**
+ * Construit la liste ordonnée des modes de portion à proposer pour cet aliment :
+ * 1) SERVING avec le label naturel de l'aliment (ex "1 boule")
+ * 2) Aliases spécifiques déclarés dans FoodSeed (ex "1 morceau = 4g" pour le sucre)
+ * 3) PRECISE_G (grammes exacts)
+ * 4) Repli générique adapté à la catégorie (louche, cuillère, poing, poignée, ...)
+ */
+private fun buildPortionOptions(
+    food: FoodEntity,
+    aliases: List<FoodPortionAliasEntity>,
+): List<Pair<PortionMode, String>> {
+    val out = mutableListOf<Pair<PortionMode, String>>()
+    out += PortionMode.SERVING to
+        "Portion standard (${food.servingLabel ?: "${food.defaultServingG.toInt()} g"})"
+
+    val aliasByMode = aliases.associateBy { it.mode }
+    // Ordre naturel : PIECE, UNIT, SLICE, CUP, GLASS, BOWL, PLATE, SPOON_*, LADLE_*, HANDFUL
+    val preferred = listOf(
+        PortionMode.PIECE, PortionMode.UNIT, PortionMode.SLICE,
+        PortionMode.CUP, PortionMode.GLASS, PortionMode.BOWL, PortionMode.PLATE,
+        PortionMode.SPOON_TABLE, PortionMode.SPOON_TEA,
+        PortionMode.LADLE_LARGE, PortionMode.LADLE_SMALL,
+        PortionMode.HANDFUL, PortionMode.CUPPED_HAND,
+        PortionMode.PALM, PortionMode.FIST, PortionMode.THUMB,
+    )
+    preferred.forEach { m ->
+        val alias = aliasByMode[m]
+        if (alias != null) out += m to "${m.labelFr()} (~${alias.equivalentG.toInt()} g)"
+    }
+    out += PortionMode.PRECISE_G to "Grammes précis"
+
+    // Modes génériques utiles selon la catégorie (proposés seulement si pas déjà déclarés en alias)
+    val fallback = when (food.category) {
+        FoodCategory.PROTEIN_ANIMAL, FoodCategory.PROTEIN_PLANT -> listOf(PortionMode.PALM)
+        FoodCategory.GRAIN -> listOf(PortionMode.FIST, PortionMode.LADLE_LARGE)
+        FoodCategory.FAT -> listOf(PortionMode.THUMB, PortionMode.SPOON_TEA, PortionMode.SPOON_TABLE)
+        FoodCategory.VEGETABLE, FoodCategory.FRUIT -> listOf(PortionMode.HANDFUL)
+        FoodCategory.SAUCE -> listOf(PortionMode.LADLE_LARGE, PortionMode.LADLE_SMALL, PortionMode.SPOON_TABLE)
+        FoodCategory.BEVERAGE -> listOf(PortionMode.GLASS, PortionMode.CUP)
+        FoodCategory.SNACK -> listOf(PortionMode.HANDFUL, PortionMode.CUPPED_HAND)
+        else -> emptyList()
+    }
+    fallback.forEach { m ->
+        if (aliasByMode[m] == null && out.none { it.first == m }) {
+            out += m to m.labelFr()
+        }
+    }
+    return out
+}
+
+internal fun PortionMode.labelFr() = when (this) {
+    PortionMode.PRECISE_G -> "Grammes précis"
+    PortionMode.SERVING -> "Portion standard"
+    PortionMode.PALM -> "Paume (protéine)"
+    PortionMode.FIST -> "Poing (féculent)"
+    PortionMode.THUMB -> "Pouce (matière grasse)"
+    PortionMode.CUPPED_HAND -> "Main en coupe"
+    PortionMode.HANDFUL -> "Poignée"
+    PortionMode.LADLE_SMALL -> "Petite louche"
+    PortionMode.LADLE_LARGE -> "Grande louche"
+    PortionMode.SPOON_TEA -> "Cuillère à café"
+    PortionMode.SPOON_TABLE -> "Cuillère à soupe"
+    PortionMode.UNIT -> "Unité"
+    PortionMode.CUP -> "Tasse"
+    PortionMode.GLASS -> "Verre"
+    PortionMode.BOWL -> "Bol"
+    PortionMode.PIECE -> "Morceau"
+    PortionMode.PLATE -> "Assiette"
+    PortionMode.SLICE -> "Tranche"
 }
 
 private fun MealType.label() = when (this) {

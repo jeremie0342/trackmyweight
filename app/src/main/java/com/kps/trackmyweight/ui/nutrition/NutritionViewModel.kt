@@ -113,6 +113,9 @@ class NutritionViewModel @Inject constructor(
 
     suspend fun searchFoods(query: String): List<FoodEntity> = nutritionRepo.searchFoods(query, 40)
 
+    suspend fun aliasesFor(foodId: Long): List<com.kps.trackmyweight.data.db.entity.FoodPortionAliasEntity> =
+        nutritionRepo.getAliases(foodId)
+
     fun addEntry(
         mealType: MealType,
         foodId: Long,
