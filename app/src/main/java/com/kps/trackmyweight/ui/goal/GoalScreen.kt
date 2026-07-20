@@ -98,6 +98,13 @@ class GoalViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), GoalUiState())
 
+    fun saveProfile(updated: UserProfileEntity) {
+        viewModelScope.launch {
+            userRepo.save(updated)
+            _message.value = "Profil mis à jour."
+        }
+    }
+
     fun changePhase(newPhase: GoalPhase) {
         viewModelScope.launch {
             val profile = userRepo.current() ?: run {
@@ -167,6 +174,7 @@ fun GoalScreen(
     vm: GoalViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
+    var showEditProfile by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
 
     Scaffold(containerColor = MaterialTheme.colorScheme.background) { insets ->
         Column(
@@ -183,7 +191,7 @@ fun GoalScreen(
                 Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
             }
 
-            ProfileCard(state)
+            ProfileCard(state, onEdit = { showEditProfile = true })
             GoalCard(state)
             PhaseCard(state, onPickPhase = vm::changePhase)
             TargetsCard(state)
@@ -191,10 +199,21 @@ fun GoalScreen(
             Spacer(Modifier.height(80.dp))
         }
     }
+
+    if (showEditProfile && state.profile != null) {
+        EditProfileDialog(
+            initial = state.profile!!,
+            onDismiss = { showEditProfile = false },
+            onSave = { updated ->
+                vm.saveProfile(updated)
+                showEditProfile = false
+            },
+        )
+    }
 }
 
 @Composable
-private fun ProfileCard(state: GoalUiState) {
+private fun ProfileCard(state: GoalUiState, onEdit: () -> Unit) {
     val p = state.profile
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
@@ -202,7 +221,10 @@ private fun ProfileCard(state: GoalUiState) {
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("Profil", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Text("Profil", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                androidx.compose.material3.TextButton(onClick = onEdit) { Text("Modifier") }
+            }
             if (p == null) {
                 Text("Profil non renseigné (relance l'onboarding).", style = MaterialTheme.typography.bodyMedium)
             } else {
@@ -336,6 +358,105 @@ private fun TargetsCard(state: GoalUiState) {
             }
         }
     }
+}
+
+@Composable
+private fun EditProfileDialog(
+    initial: UserProfileEntity,
+    onDismiss: () -> Unit,
+    onSave: (UserProfileEntity) -> Unit,
+) {
+    var sex by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(initial.sex) }
+    var height by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(initial.heightCm.toInt().toString()) }
+    var birthYear by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(initial.birthDate.year.toString()) }
+    var birthMonth by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(initial.birthDate.monthNumber.toString()) }
+    var birthDay by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(initial.birthDate.dayOfMonth.toString()) }
+    var activity by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(initial.activityLevel) }
+
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Modifier le profil") },
+        text = {
+            Column(
+                modifier = Modifier.height(520.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text("Sexe", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    com.kps.trackmyweight.data.db.enums.Sex.entries.forEach { s ->
+                        androidx.compose.foundation.layout.Box(modifier = Modifier.weight(1f)) {
+                            ChoiceTile(title = if (s.name == "MALE") "Homme" else "Femme", selected = sex == s, onClick = { sex = s })
+                        }
+                    }
+                }
+
+                com.kps.trackmyweight.ui.common.NumericField(label = "Taille (cm)", valueText = height, onValueChange = { height = it })
+
+                Text("Date de naissance", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    androidx.compose.foundation.layout.Box(modifier = Modifier.weight(1f)) {
+                        com.kps.trackmyweight.ui.common.NumericField(label = "Jour", valueText = birthDay, onValueChange = { birthDay = it })
+                    }
+                    androidx.compose.foundation.layout.Box(modifier = Modifier.weight(1f)) {
+                        com.kps.trackmyweight.ui.common.NumericField(label = "Mois", valueText = birthMonth, onValueChange = { birthMonth = it })
+                    }
+                    androidx.compose.foundation.layout.Box(modifier = Modifier.weight(1.3f)) {
+                        com.kps.trackmyweight.ui.common.NumericField(label = "Année", valueText = birthYear, onValueChange = { birthYear = it })
+                    }
+                }
+
+                Text("Niveau d'activité", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                com.kps.trackmyweight.data.db.enums.ActivityLevel.entries.forEach { lvl ->
+                    ChoiceTile(
+                        title = lvl.labelFr(),
+                        subtitle = lvl.hintFr(),
+                        selected = activity == lvl,
+                        onClick = { activity = lvl },
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            com.kps.trackmyweight.ui.common.PrimaryButton(
+                text = "Enregistrer",
+                enabled = height.toIntOrNull() != null
+                    && birthYear.toIntOrNull() != null
+                    && birthMonth.toIntOrNull() in 1..12
+                    && birthDay.toIntOrNull() in 1..31,
+                onClick = {
+                    val date = runCatching {
+                        kotlinx.datetime.LocalDate(birthYear.toInt(), birthMonth.toInt(), birthDay.toInt())
+                    }.getOrNull() ?: return@PrimaryButton
+                    onSave(
+                        initial.copy(
+                            sex = sex,
+                            heightCm = height.toInt().toFloat(),
+                            birthDate = date,
+                            activityLevel = activity,
+                            updatedAt = kotlinx.datetime.Clock.System.now(),
+                        ),
+                    )
+                },
+            )
+        },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Annuler") } },
+    )
+}
+
+private fun com.kps.trackmyweight.data.db.enums.ActivityLevel.labelFr() = when (this) {
+    com.kps.trackmyweight.data.db.enums.ActivityLevel.SEDENTARY -> "Sédentaire"
+    com.kps.trackmyweight.data.db.enums.ActivityLevel.LIGHTLY_ACTIVE -> "Légèrement actif"
+    com.kps.trackmyweight.data.db.enums.ActivityLevel.MODERATELY_ACTIVE -> "Modérément actif"
+    com.kps.trackmyweight.data.db.enums.ActivityLevel.VERY_ACTIVE -> "Très actif"
+    com.kps.trackmyweight.data.db.enums.ActivityLevel.EXTRA_ACTIVE -> "Extrêmement actif"
+}
+
+private fun com.kps.trackmyweight.data.db.enums.ActivityLevel.hintFr() = when (this) {
+    com.kps.trackmyweight.data.db.enums.ActivityLevel.SEDENTARY -> "Bureau, très peu de sport"
+    com.kps.trackmyweight.data.db.enums.ActivityLevel.LIGHTLY_ACTIVE -> "1-3 séances / semaine"
+    com.kps.trackmyweight.data.db.enums.ActivityLevel.MODERATELY_ACTIVE -> "3-5 séances / semaine"
+    com.kps.trackmyweight.data.db.enums.ActivityLevel.VERY_ACTIVE -> "6-7 séances / semaine"
+    com.kps.trackmyweight.data.db.enums.ActivityLevel.EXTRA_ACTIVE -> "Sport intensif + boulot physique"
 }
 
 @Composable
