@@ -139,6 +139,7 @@ dependencies {
     implementation(libs.security.crypto)
     implementation(libs.biometric)
     implementation(libs.datastore.preferences)
+    implementation(libs.documentfile)
 
     // CameraX
     implementation(libs.camerax.core)

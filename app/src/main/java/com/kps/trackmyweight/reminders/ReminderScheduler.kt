@@ -84,6 +84,32 @@ class ReminderScheduler @Inject constructor(
         )
     }
 
+    /** Backup automatique quotidien vers le dossier choisi via SAF. */
+    fun scheduleAutoBackup() {
+        val work = PeriodicWorkRequestBuilder<AutoBackupWorker>(1, TimeUnit.DAYS)
+            .setInitialDelay(computeInitialDelayForHour(hour = 3, minute = 0), TimeUnit.MILLISECONDS)
+            .build()
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+            WORK_AUTO_BACKUP,
+            ExistingPeriodicWorkPolicy.KEEP,
+            work,
+        )
+    }
+
+    /** Backup immédiat (bouton Sauvegarder maintenant). */
+    fun runAutoBackupNow() {
+        val work = OneTimeWorkRequestBuilder<AutoBackupWorker>().build()
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            "${WORK_AUTO_BACKUP}_oneshot",
+            ExistingWorkPolicy.REPLACE,
+            work,
+        )
+    }
+
+    fun cancelAutoBackup() {
+        WorkManager.getInstance(context).cancelUniqueWork(WORK_AUTO_BACKUP)
+    }
+
     /** Sync immédiate à la demande (bouton Settings). */
     fun runHealthConnectSyncNow() {
         val work = OneTimeWorkRequestBuilder<HealthConnectSyncWorker>().build()
@@ -143,5 +169,6 @@ class ReminderScheduler @Inject constructor(
         const val WORK_SESSION_NOT_LOGGED = "session_not_logged"
         const val WORK_HYDRATION = "hydration"
         const val WORK_HEALTH_CONNECT_SYNC = "health_connect_sync"
+        const val WORK_AUTO_BACKUP = "auto_backup"
     }
 }

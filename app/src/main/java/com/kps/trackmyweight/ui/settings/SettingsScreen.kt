@@ -32,6 +32,7 @@ import androidx.health.connect.client.PermissionController
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kps.trackmyweight.data.backup.BackupPreferences
 import com.kps.trackmyweight.data.backup.BackupService
 import com.kps.trackmyweight.data.healthconnect.HealthConnectManager
 import com.kps.trackmyweight.reminders.ReminderScheduler
@@ -48,14 +49,49 @@ data class SettingsUiState(
     val isBusy: Boolean = false,
     val lastMessage: String? = null,
     val healthConnectGranted: Boolean = false,
+    val autoBackupFolderUri: String? = null,
+    val autoBackupEnabled: Boolean = false,
+    val lastBackupAtMs: Long = 0L,
+    val lastBackupSizeBytes: Long = 0L,
+    val lastBackupError: String? = null,
 )
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val backupService: BackupService,
+    private val backupPrefs: BackupPreferences,
     private val hcManager: HealthConnectManager,
     private val reminderScheduler: ReminderScheduler,
 ) : ViewModel() {
+
+    init { refreshBackupState() }
+
+    fun refreshBackupState() {
+        _state.value = _state.value.copy(
+            autoBackupFolderUri = backupPrefs.folderUri,
+            autoBackupEnabled = backupPrefs.autoBackupEnabled,
+            lastBackupAtMs = backupPrefs.lastBackupAtMs,
+            lastBackupSizeBytes = backupPrefs.lastBackupSizeBytes,
+            lastBackupError = backupPrefs.lastBackupError,
+        )
+    }
+
+    fun setBackupFolder(uri: String?) {
+        backupPrefs.folderUri = uri
+        refreshBackupState()
+    }
+
+    fun setAutoBackupEnabled(enabled: Boolean) {
+        backupPrefs.autoBackupEnabled = enabled
+        if (enabled) reminderScheduler.scheduleAutoBackup()
+        else reminderScheduler.cancelAutoBackup()
+        refreshBackupState()
+    }
+
+    fun runBackupNow() {
+        reminderScheduler.runAutoBackupNow()
+        _state.value = _state.value.copy(lastMessage = "Backup lancé, il apparaîtra dans le dossier choisi dans quelques secondes.")
+    }
 
     private val _state = MutableStateFlow(SettingsUiState())
     val state: StateFlow<SettingsUiState> = _state.asStateFlow()
@@ -130,6 +166,19 @@ fun SettingsScreen(
     }
 
     androidx.compose.runtime.LaunchedEffect(Unit) { vm.refreshHealthConnectStatus() }
+
+    val openTree = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        uri?.let {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    it,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                )
+            }
+            vm.setBackupFolder(it.toString())
+            vm.setMessage("Dossier de backup configuré.")
+        }
+    }
 
     val createZipDoc = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
         uri?.let {
@@ -302,6 +351,57 @@ fun SettingsScreen(
                         onClick = { openDoc.launch(arrayOf("application/zip", "application/json", "*/*")) },
                         enabled = !state.isBusy,
                     )
+                }
+            }
+
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Backup automatique", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "Choisis un dossier (ex : un dossier Google Drive synchronisé, OneDrive, Downloads…) — l'app y déposera automatiquement une sauvegarde ZIP chaque jour. Les 7 dernières sont conservées.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    val folderLabel = state.autoBackupFolderUri?.let {
+                        runCatching { android.net.Uri.decode(it).substringAfterLast("%3A").substringAfterLast("/") }.getOrNull()
+                    } ?: "Aucun dossier choisi"
+                    Text("Dossier : $folderLabel", style = MaterialTheme.typography.bodyMedium)
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Text("Activer", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                        androidx.compose.material3.Switch(
+                            checked = state.autoBackupEnabled && state.autoBackupFolderUri != null,
+                            onCheckedChange = { checked -> vm.setAutoBackupEnabled(checked && state.autoBackupFolderUri != null) },
+                            enabled = state.autoBackupFolderUri != null,
+                        )
+                    }
+                    SecondaryButton(
+                        text = if (state.autoBackupFolderUri == null) "Choisir un dossier" else "Changer de dossier",
+                        onClick = { openTree.launch(null) },
+                        enabled = !state.isBusy,
+                    )
+                    if (state.autoBackupFolderUri != null) {
+                        PrimaryButton(
+                            text = "Sauvegarder maintenant",
+                            onClick = vm::runBackupNow,
+                            enabled = !state.isBusy,
+                        )
+                    }
+                    if (state.lastBackupAtMs > 0L) {
+                        val date = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.FRANCE)
+                            .format(java.util.Date(state.lastBackupAtMs))
+                        val sizeKb = state.lastBackupSizeBytes / 1024
+                        Text(
+                            "Dernier backup : $date · ${sizeKb} KB",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    state.lastBackupError?.let {
+                        Text("Dernière erreur : $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                    }
                 }
             }
 

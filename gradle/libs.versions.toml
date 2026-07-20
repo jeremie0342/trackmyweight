@@ -74,6 +74,7 @@ vico-compose-m3 = { group = "com.patrykandpatrick.vico", name = "compose-m3", ve
 security-crypto = { group = "androidx.security", name = "security-crypto-ktx", version.ref = "securityCrypto" }
 biometric = { group = "androidx.biometric", name = "biometric-ktx", version.ref = "biometric" }
 datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+documentfile = { group = "androidx.documentfile", name = "documentfile", version = "1.0.1" }
 
 camerax-core = { group = "androidx.camera", name = "camera-core", version.ref = "cameraX" }
 camerax-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "cameraX" }
