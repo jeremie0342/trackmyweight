@@ -68,7 +68,26 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Health Connect Android <14 : activity de rationale. Utilise MainActivity qui affichera
+                 la carte Health Connect depuis les Paramètres. -->
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
         </activity>
+
+        <!-- Health Connect Android 14+ : activity-alias pour que l'app apparaisse dans la liste
+             des apps compatibles sur l'écran système Health Connect. Sans ceci, TrackMyWeight
+             n'est pas listée dans HC → impossible d'accorder les permissions. -->
+        <activity-alias
+            android:name=".ViewPermissionUsageActivity"
+            android:exported="true"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
 
         <receiver
             android:name=".widget.WeightWidgetReceiver"
