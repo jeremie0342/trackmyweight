@@ -34,6 +34,21 @@ class HabitRepository @Inject constructor(
     // ── Seed ────────────────────────────────────
     suspend fun seedIfEmpty() {
         habitDao.insertHabitDefinitions(HabitSeed.items)
+        // Migration : les habitudes seedées avant N6 n'ont pas dailyTarget/unit.
+        // On complète les 3 habitudes standards si elles existent sans ces champs.
+        val all = habitDao.observeAllHabits().first()
+        val patches = mapOf(
+            "water_2L" to Triple("Eau", 2.5f, "L"),
+            "steps_10k" to Triple("Pas", 10000f, "pas"),
+            "sleep_7h" to Triple("Sommeil", 7f, "h"),
+        )
+        all.filter { it.key in patches.keys && (it.dailyTarget == null || it.unit == null) }
+            .forEach { existing ->
+                val (name, target, unit) = patches[existing.key]!!
+                habitDao.upsertHabitDefinition(
+                    existing.copy(displayName = name, dailyTarget = target, unit = unit),
+                )
+            }
     }
 
     fun observeHabits(): Flow<List<HabitDefinitionEntity>> = habitDao.observeActiveHabits()

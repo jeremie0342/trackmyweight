@@ -309,6 +309,23 @@ fun SettingsScreen(
                             text = "Autoriser Health Connect",
                             onClick = { hcPermissionsLauncher.launch(vm.healthConnectPermissions) },
                         )
+                        SecondaryButton(
+                            text = "Ouvrir Health Connect (fallback)",
+                            onClick = {
+                                runCatching {
+                                    val intent = Intent("androidx.health.ACTION_HEALTH_HOME_SETTINGS")
+                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    context.startActivity(intent)
+                                }.onFailure {
+                                    runCatching {
+                                        val fb = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                                            .setData(android.net.Uri.parse("package:com.google.android.healthconnect.controller"))
+                                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        context.startActivity(fb)
+                                    }
+                                }
+                            },
+                        )
                     } else {
                         Text(
                             "Permissions accordées. Sync automatique toutes les 12h. Tu peux forcer une sync immédiate ci-dessous.",
