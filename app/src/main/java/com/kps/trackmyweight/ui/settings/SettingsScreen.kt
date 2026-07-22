@@ -29,7 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.health.connect.client.PermissionController
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -50,6 +49,9 @@ data class SettingsUiState(
     val isBusy: Boolean = false,
     val lastMessage: String? = null,
     val healthConnectGranted: Boolean = false,
+    val healthConnectWeightGranted: Boolean = false,
+    val healthConnectStepsGranted: Boolean = false,
+    val healthConnectSleepGranted: Boolean = false,
     val autoBackupFolderUri: String? = null,
     val autoBackupEnabled: Boolean = false,
     val lastBackupAtMs: Long = 0L,
@@ -101,8 +103,16 @@ class SettingsViewModel @Inject constructor(
     val healthConnectAvailable: Boolean get() = hcManager.isAvailable
 
     suspend fun refreshHealthConnectStatus() {
-        val granted = hcManager.hasAllPermissions()
-        _state.value = _state.value.copy(healthConnectGranted = granted)
+        val granted = runCatching { hcManager.grantedPermissions() }.getOrDefault(emptySet())
+        val weight = "android.permission.health.READ_WEIGHT" in granted
+        val steps = "android.permission.health.READ_STEPS" in granted
+        val sleep = "android.permission.health.READ_SLEEP" in granted
+        _state.value = _state.value.copy(
+            healthConnectGranted = weight && steps && sleep,
+            healthConnectWeightGranted = weight,
+            healthConnectStepsGranted = steps,
+            healthConnectSleepGranted = sleep,
+        )
     }
 
     fun runHealthConnectSyncNow() {
@@ -160,21 +170,23 @@ fun SettingsScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    val hcPermissionsLauncher = rememberLauncherForActivityResult(
-        contract = PermissionController.createRequestPermissionResultContract(),
-    ) { granted ->
-        scope.launch { vm.refreshHealthConnectStatus() }
-    }
-    // Fallback runtime-permissions launcher (Android 14+ traite les android.permission.health.*
-    // comme des permissions runtime standard, mais le contract PermissionController est parfois cassé
-    // sur les alphas). On lance directement RequestMultiplePermissions.
-    val hcRuntimeLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions(),
-    ) { _ ->
-        scope.launch { vm.refreshHealthConnectStatus() }
-    }
+    // Health Connect : sur les Android récents (14+/16 HyperOS), le contract PermissionController
+    // et RequestMultiplePermissions sont silencieusement rejetés par la surcouche constructeur.
+    // Seul le lancement direct de l'app HC via intent système marche de manière fiable.
+    // L'UI se resynchronise sur ON_RESUME quand l'utilisateur revient de l'app HC.
 
-    androidx.compose.runtime.LaunchedEffect(Unit) { vm.refreshHealthConnectStatus() }
+    // Re-check les permissions HC à chaque ON_RESUME : quand l'utilisateur revient de l'app
+    // Health Connect après avoir accordé/révoqué manuellement, l'UI se met à jour toute seule.
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                scope.launch { vm.refreshHealthConnectStatus() }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     val openTree = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         uri?.let {
@@ -307,56 +319,47 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                    } else if (!state.healthConnectGranted) {
-                        Text(
-                            "Autorise l'app à lire ton poids, tes pas et ton sommeil depuis Health Connect pour importer automatiquement les données de ta balance/montre connectée.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        PrimaryButton(
-                            text = "Autoriser Health Connect",
-                            onClick = {
-                                // Sur Android 14+, ces permissions sont runtime → on tente d'abord
-                                // le contract Health Connect (bon pour Android <14 + les futures alphas).
-                                // Si l'utilisateur ne voit rien, il utilisera le fallback.
-                                hcPermissionsLauncher.launch(vm.healthConnectPermissions)
-                            },
-                        )
-                        SecondaryButton(
-                            text = "Demander via permissions runtime",
-                            onClick = { hcRuntimeLauncher.launch(vm.healthConnectPermissions.toTypedArray()) },
-                        )
-                        SecondaryButton(
-                            text = "Ouvrir Health Connect",
-                            onClick = {
-                                // Sur Android 14+ (surtout 16 comme HyperOS), le HC système utilise le
-                                // préfixe android.health.connect.action.*, pas androidx.health.*.
-                                val actions = listOf(
-                                    "android.health.connect.action.HEALTH_HOME_SETTINGS",
-                                    "android.health.connect.action.MANAGE_HEALTH_DATA",
-                                    "androidx.health.ACTION_HEALTH_CONNECT_SETTINGS",
-                                )
-                                var opened = false
-                                for (action in actions) {
-                                    val ok = runCatching {
-                                        context.startActivity(
-                                            Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                                        )
-                                    }.isSuccess
-                                    if (ok) { opened = true; break }
-                                }
-                                if (!opened) {
-                                    vm.setMessage("Impossible d'ouvrir Health Connect. Va dans Paramètres système → Sécurité et confidentialité → Health Connect.")
-                                }
-                            },
-                        )
                     } else {
-                        Text(
-                            "Permissions accordées. Sync automatique toutes les 12h. Tu peux forcer une sync immédiate ci-dessous.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        SecondaryButton(text = "Sync maintenant", onClick = vm::runHealthConnectSyncNow)
+                        // Statut détaillé par signal — se met à jour tout seul quand tu reviens de HC.
+                        HcPermissionRow("Poids", state.healthConnectWeightGranted)
+                        HcPermissionRow("Pas", state.healthConnectStepsGranted)
+                        HcPermissionRow("Sommeil", state.healthConnectSleepGranted)
+                        Spacer(Modifier.height(4.dp))
+                        if (state.healthConnectGranted) {
+                            Text(
+                                "Toutes les permissions accordées. Sync auto toutes les 12h.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            SecondaryButton(text = "Sync maintenant", onClick = vm::runHealthConnectSyncNow)
+                        } else {
+                            Text(
+                                "Sur ton Android, le dialogue système de permission n'apparaît pas toujours automatiquement. Le plus fiable : ouvre Health Connect, va dans « Applications », choisis TrackMyWeight et coche les 3 permissions Poids / Pas / Sommeil. Cet écran se mettra à jour tout seul quand tu reviens.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            PrimaryButton(
+                                text = "Ouvrir Health Connect",
+                                onClick = {
+                                    val actions = listOf(
+                                        "android.health.connect.action.MANAGE_HEALTH_DATA",
+                                        "android.health.connect.action.HEALTH_HOME_SETTINGS",
+                                    )
+                                    var opened = false
+                                    for (action in actions) {
+                                        val ok = runCatching {
+                                            context.startActivity(
+                                                Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                                            )
+                                        }.isSuccess
+                                        if (ok) { opened = true; break }
+                                    }
+                                    if (!opened) {
+                                        vm.setMessage("Impossible d'ouvrir Health Connect. Va dans Paramètres système → Sécurité et confidentialité → Health Connect.")
+                                    }
+                                },
+                            )
+                        }
                     }
                 }
             }
@@ -472,5 +475,23 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(120.dp))
         }
+    }
+}
+
+@androidx.compose.runtime.Composable
+private fun HcPermissionRow(label: String, granted: Boolean) {
+    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+        Text(
+            if (granted) "✓" else "✗",
+            style = MaterialTheme.typography.titleMedium,
+            color = if (granted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(end = 10.dp),
+        )
+        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        Text(
+            if (granted) "Autorisé" else "Non autorisé",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
