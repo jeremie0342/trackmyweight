@@ -27,6 +27,13 @@
             <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
             <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
         </intent>
+        <!-- Android 14+/16 : Health Connect utilise ces actions natives -->
+        <intent>
+            <action android:name="android.health.connect.action.HEALTH_HOME_SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.health.connect.action.MANAGE_HEALTH_DATA" />
+        </intent>
     </queries>
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />

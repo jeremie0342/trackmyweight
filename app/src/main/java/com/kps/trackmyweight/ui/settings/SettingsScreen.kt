@@ -329,30 +329,24 @@ fun SettingsScreen(
                         SecondaryButton(
                             text = "Ouvrir Health Connect",
                             onClick = {
-                                // Actions successives : réglages HC, puis fiche appli en dernier recours.
+                                // Sur Android 14+ (surtout 16 comme HyperOS), le HC système utilise le
+                                // préfixe android.health.connect.action.*, pas androidx.health.*.
                                 val actions = listOf(
+                                    "android.health.connect.action.HEALTH_HOME_SETTINGS",
+                                    "android.health.connect.action.MANAGE_HEALTH_DATA",
                                     "androidx.health.ACTION_HEALTH_CONNECT_SETTINGS",
-                                    "androidx.health.ACTION_HEALTH_HOME_SETTINGS",
                                 )
                                 var opened = false
                                 for (action in actions) {
-                                    runCatching {
+                                    val ok = runCatching {
                                         context.startActivity(
                                             Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                                         )
-                                        opened = true
-                                    }
-                                    if (opened) break
+                                    }.isSuccess
+                                    if (ok) { opened = true; break }
                                 }
                                 if (!opened) {
-                                    runCatching {
-                                        context.startActivity(
-                                            android.content.Intent(android.content.Intent.ACTION_MAIN)
-                                                .setPackage("com.google.android.healthconnect.controller")
-                                                .addCategory(android.content.Intent.CATEGORY_LAUNCHER)
-                                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                                        )
-                                    }
+                                    vm.setMessage("Impossible d'ouvrir Health Connect. Va dans Paramètres système → Sécurité et confidentialité → Health Connect.")
                                 }
                             },
                         )
