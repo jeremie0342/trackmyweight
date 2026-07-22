@@ -165,6 +165,14 @@ fun SettingsScreen(
     ) { granted ->
         scope.launch { vm.refreshHealthConnectStatus() }
     }
+    // Fallback runtime-permissions launcher (Android 14+ traite les android.permission.health.*
+    // comme des permissions runtime standard, mais le contract PermissionController est parfois cassé
+    // sur les alphas). On lance directement RequestMultiplePermissions.
+    val hcRuntimeLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+    ) { _ ->
+        scope.launch { vm.refreshHealthConnectStatus() }
+    }
 
     androidx.compose.runtime.LaunchedEffect(Unit) { vm.refreshHealthConnectStatus() }
 
@@ -307,21 +315,43 @@ fun SettingsScreen(
                         )
                         PrimaryButton(
                             text = "Autoriser Health Connect",
-                            onClick = { hcPermissionsLauncher.launch(vm.healthConnectPermissions) },
+                            onClick = {
+                                // Sur Android 14+, ces permissions sont runtime → on tente d'abord
+                                // le contract Health Connect (bon pour Android <14 + les futures alphas).
+                                // Si l'utilisateur ne voit rien, il utilisera le fallback.
+                                hcPermissionsLauncher.launch(vm.healthConnectPermissions)
+                            },
                         )
                         SecondaryButton(
-                            text = "Ouvrir Health Connect (fallback)",
+                            text = "Demander via permissions runtime",
+                            onClick = { hcRuntimeLauncher.launch(vm.healthConnectPermissions.toTypedArray()) },
+                        )
+                        SecondaryButton(
+                            text = "Ouvrir Health Connect",
                             onClick = {
-                                runCatching {
-                                    val intent = Intent("androidx.health.ACTION_HEALTH_HOME_SETTINGS")
-                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    context.startActivity(intent)
-                                }.onFailure {
+                                // Actions successives : réglages HC, puis fiche appli en dernier recours.
+                                val actions = listOf(
+                                    "androidx.health.ACTION_HEALTH_CONNECT_SETTINGS",
+                                    "androidx.health.ACTION_HEALTH_HOME_SETTINGS",
+                                )
+                                var opened = false
+                                for (action in actions) {
                                     runCatching {
-                                        val fb = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                                            .setData(android.net.Uri.parse("package:com.google.android.healthconnect.controller"))
-                                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                        context.startActivity(fb)
+                                        context.startActivity(
+                                            Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                                        )
+                                        opened = true
+                                    }
+                                    if (opened) break
+                                }
+                                if (!opened) {
+                                    runCatching {
+                                        context.startActivity(
+                                            android.content.Intent(android.content.Intent.ACTION_MAIN)
+                                                .setPackage("com.google.android.healthconnect.controller")
+                                                .addCategory(android.content.Intent.CATEGORY_LAUNCHER)
+                                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                                        )
                                     }
                                 }
                             },
