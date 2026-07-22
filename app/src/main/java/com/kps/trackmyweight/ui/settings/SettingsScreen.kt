@@ -334,28 +334,41 @@ fun SettingsScreen(
                             SecondaryButton(text = "Sync maintenant", onClick = vm::runHealthConnectSyncNow)
                         } else {
                             Text(
-                                "Sur ton Android, le dialogue système de permission n'apparaît pas toujours automatiquement. Le plus fiable : ouvre Health Connect, va dans « Applications », choisis TrackMyWeight et coche les 3 permissions Poids / Pas / Sommeil. Cet écran se mettra à jour tout seul quand tu reviens.",
+                                "Tape ci-dessous pour ouvrir l'écran système Health Connect qui te permet d'accorder Poids / Pas / Sommeil à TrackMyWeight. Cette page se mettra à jour toute seule au retour.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             PrimaryButton(
+                                text = "Demander les permissions",
+                                onClick = {
+                                    val ok = runCatching {
+                                        val intent = Intent("android.health.connect.action.REQUEST_HEALTH_PERMISSIONS").apply {
+                                            putExtra("android.provider.extra.PACKAGE_NAME", context.packageName)
+                                            putExtra(
+                                                "androidx.health.connect.EXTRA_PERMISSIONS",
+                                                arrayOf(
+                                                    "android.permission.health.READ_WEIGHT",
+                                                    "android.permission.health.READ_STEPS",
+                                                    "android.permission.health.READ_SLEEP",
+                                                ),
+                                            )
+                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        }
+                                        context.startActivity(intent)
+                                    }.isSuccess
+                                    if (!ok) {
+                                        vm.setMessage("Impossible d'ouvrir Health Connect. Va dans Paramètres système → Sécurité et confidentialité → Health Connect.")
+                                    }
+                                },
+                            )
+                            SecondaryButton(
                                 text = "Ouvrir Health Connect",
                                 onClick = {
-                                    val actions = listOf(
-                                        "android.health.connect.action.MANAGE_HEALTH_DATA",
-                                        "android.health.connect.action.HEALTH_HOME_SETTINGS",
-                                    )
-                                    var opened = false
-                                    for (action in actions) {
-                                        val ok = runCatching {
-                                            context.startActivity(
-                                                Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                                            )
-                                        }.isSuccess
-                                        if (ok) { opened = true; break }
-                                    }
-                                    if (!opened) {
-                                        vm.setMessage("Impossible d'ouvrir Health Connect. Va dans Paramètres système → Sécurité et confidentialité → Health Connect.")
+                                    runCatching {
+                                        context.startActivity(
+                                            Intent("android.health.connect.action.MANAGE_HEALTH_DATA")
+                                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                                        )
                                     }
                                 },
                             )
