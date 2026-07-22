@@ -65,8 +65,6 @@ class SettingsViewModel @Inject constructor(
     private val reminderScheduler: ReminderScheduler,
 ) : ViewModel() {
 
-    init { refreshBackupState() }
-
     fun refreshBackupState() {
         _state.value = _state.value.copy(
             autoBackupFolderUri = backupPrefs.folderUri,
@@ -96,6 +94,8 @@ class SettingsViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(SettingsUiState())
     val state: StateFlow<SettingsUiState> = _state.asStateFlow()
+
+    init { refreshBackupState() }
 
     val healthConnectPermissions: Set<String> = hcManager.readPermissions
     val healthConnectAvailable: Boolean get() = hcManager.isAvailable
