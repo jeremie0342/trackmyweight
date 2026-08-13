@@ -9,13 +9,16 @@ import com.kps.trackmyweight.data.db.entity.FavoriteMealEntity
 import com.kps.trackmyweight.data.db.entity.FavoriteMealEntryEntity
 import com.kps.trackmyweight.data.db.entity.FoodEntity
 import com.kps.trackmyweight.data.db.entity.FoodPortionAliasEntity
+import com.kps.trackmyweight.data.db.entity.FoodPriceEntity
 import com.kps.trackmyweight.data.db.entity.MealEntity
 import com.kps.trackmyweight.data.db.entity.MealEntryEntity
+import com.kps.trackmyweight.data.db.entity.ProteinValueRow
 import com.kps.trackmyweight.data.db.enums.CookingMethod
 import com.kps.trackmyweight.data.db.enums.MealType
 import com.kps.trackmyweight.data.db.enums.PortionMode
 import com.kps.trackmyweight.data.seed.FoodSeed
 import com.kps.trackmyweight.domain.calc.CookingImpact
+import com.kps.trackmyweight.domain.calc.CostPerProtein
 import com.kps.trackmyweight.domain.calc.MacroCalculator
 import com.kps.trackmyweight.domain.calc.PortionResolver
 import kotlinx.coroutines.flow.Flow
@@ -197,6 +200,60 @@ class NutritionRepository @Inject constructor(
     }
 
     // ── Diet phase (adaptation calories) ─────────────
+    // ─────── Coût protéique ───────
+
+    /**
+     * Classement des aliments du meilleur au pire rapport prix / protéine.
+     *
+     * [CostPerProtein] etait ecrit et teste sans aucun appelant : la
+     * fonctionnalite annoncee au README n'existait nulle part.
+     */
+    fun observeProteinValueRanking(limit: Int = 20): Flow<List<ProteinValueRow>> =
+        nutritionDao.observeProteinValueRanking(limit)
+
+    suspend fun getFoodsWithoutPrice(limit: Int = 40): List<FoodEntity> =
+        nutritionDao.getFoodsWithoutPrice(limit)
+
+    suspend fun getLatestPrice(foodId: Long): FoodPriceEntity? =
+        nutritionDao.getLatestPrice(foodId)
+
+    /**
+     * Enregistre un prix relevé et calcule le coût par gramme de protéine.
+     *
+     * Le coût est figé au moment de la saisie plutôt que recalculé à la lecture :
+     * si la composition de l'aliment change plus tard, un relevé de prix ancien
+     * doit rester le reflet de ce qui a été constaté ce jour-là.
+     *
+     * @param quantityG masse achetée pour [price], en grammes.
+     * @return le coût par gramme de protéine, ou null si les données ne
+     *   permettent pas de le calculer (protéines nulles, quantité nulle).
+     */
+    suspend fun recordPrice(
+        foodId: Long,
+        price: Float,
+        quantityG: Float,
+        currency: String,
+    ): Float? {
+        val food = nutritionDao.getFood(foodId) ?: return null
+        val costPerGramProtein = CostPerProtein.compute(
+            pricePerPortion = price,
+            gramsPerPortion = quantityG,
+            proteinPer100g = food.proteinPer100g,
+        ) ?: return null
+
+        nutritionDao.insertPrice(
+            FoodPriceEntity(
+                foodId = foodId,
+                currency = currency,
+                pricePerServing = price,
+                pricePer100g = price / quantityG * 100f,
+                costPerGramProtein = costPerGramProtein,
+                updatedAt = Clock.System.now(),
+            )
+        )
+        return costPerGramProtein
+    }
+
     fun observeActivePhase(): Flow<DietPhaseEntity?> = nutritionDao.observeActivePhase()
 
     suspend fun updateActivePhase(newTargetKcal: Int, newTargetProteinG: Int? = null) {

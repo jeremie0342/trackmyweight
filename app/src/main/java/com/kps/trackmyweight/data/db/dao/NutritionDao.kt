@@ -14,6 +14,7 @@ import com.kps.trackmyweight.data.db.entity.FavoriteMealEntryEntity
 import com.kps.trackmyweight.data.db.entity.FoodEntity
 import com.kps.trackmyweight.data.db.entity.FoodPortionAliasEntity
 import com.kps.trackmyweight.data.db.entity.FoodPriceEntity
+import com.kps.trackmyweight.data.db.entity.ProteinValueRow
 import com.kps.trackmyweight.data.db.entity.MealEntity
 import com.kps.trackmyweight.data.db.entity.MealEntryEntity
 import com.kps.trackmyweight.data.db.entity.RecipeEntity
@@ -90,18 +91,39 @@ interface NutritionDao {
     @Query("SELECT * FROM food_price WHERE foodId = :foodId ORDER BY updatedAt DESC LIMIT 1")
     suspend fun getLatestPrice(foodId: Long): FoodPriceEntity?
 
-    /** Classement des aliments par € (ou FCFA) par gramme de protéine — croissant. */
+    /**
+     * Classement des aliments par coût du gramme de protéine, croissant.
+     *
+     * Renvoie le coût avec l'aliment : une variante ne renvoyant que
+     * `FoodEntity` obligeait l'appelant à refaire une requête par ligne pour
+     * afficher le prix, ce qui rendait le classement inexploitable.
+     */
     @Query("""
-        SELECT f.* FROM food f
+        SELECT f.id AS foodId,
+               f.name AS name,
+               f.proteinPer100g AS proteinPer100g,
+               fp.minCost AS costPerGramProtein,
+               fp.currency AS currency
+        FROM food f
         INNER JOIN (
-            SELECT foodId, MIN(costPerGramProtein) AS minCost
+            SELECT foodId, MIN(costPerGramProtein) AS minCost, currency
             FROM food_price
             GROUP BY foodId
         ) fp ON fp.foodId = f.id
         ORDER BY fp.minCost ASC
         LIMIT :limit
     """)
-    suspend fun getFoodsRankedByProteinCost(limit: Int = 20): List<FoodEntity>
+    fun observeProteinValueRanking(limit: Int = 20): Flow<List<ProteinValueRow>>
+
+    /** Aliments sans prix renseigné, pour proposer de compléter le classement. */
+    @Query("""
+        SELECT * FROM food
+        WHERE proteinPer100g > 0
+          AND id NOT IN (SELECT DISTINCT foodId FROM food_price)
+        ORDER BY proteinPer100g DESC
+        LIMIT :limit
+    """)
+    suspend fun getFoodsWithoutPrice(limit: Int = 40): List<FoodEntity>
 
     // ── Meals ─────────────────────────────────────────────
     @Insert

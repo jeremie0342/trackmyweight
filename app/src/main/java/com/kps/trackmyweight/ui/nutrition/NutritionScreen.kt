@@ -50,6 +50,7 @@ import com.kps.trackmyweight.data.db.enums.MealType
 import com.kps.trackmyweight.data.db.enums.PortionMode
 import com.kps.trackmyweight.data.repository.MealWithEntries
 import com.kps.trackmyweight.domain.calc.DistributionQuality
+import com.kps.trackmyweight.ui.common.labelFr
 import com.kps.trackmyweight.ui.common.ChoiceTile
 import com.kps.trackmyweight.ui.common.NumericField
 import com.kps.trackmyweight.ui.common.PrimaryButton
@@ -57,7 +58,10 @@ import com.kps.trackmyweight.ui.common.TextField
 import kotlinx.coroutines.launch
 
 @Composable
-fun NutritionScreen(vm: NutritionViewModel = hiltViewModel()) {
+fun NutritionScreen(
+    onOpenProteinValue: () -> Unit = {},
+    vm: NutritionViewModel = hiltViewModel(),
+) {
     val state by vm.state.collectAsState()
     var showAddDialog by remember { mutableStateOf<MealType?>(null) }
     var showFavPicker by remember { mutableStateOf<MealType?>(null) }
@@ -91,6 +95,7 @@ fun NutritionScreen(vm: NutritionViewModel = hiltViewModel()) {
 
             MacrosCard(state)
             state.distribution?.let { DistributionCard(it) }
+            ProteinValueShortcut(onClick = onOpenProteinValue)
 
             listOf(
                 MealType.BREAKFAST to "Petit-déjeuner",
@@ -252,7 +257,7 @@ private fun DistributionCard(v: com.kps.trackmyweight.domain.calc.DistributionVe
     ) {
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("Distribution protéines", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(v.quality.name, style = MaterialTheme.typography.titleMedium, color = color)
+            Text(v.quality.labelFr(), style = MaterialTheme.typography.titleMedium, color = color)
             Text(v.advice, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
@@ -570,4 +575,30 @@ private fun MealType.label() = when (this) {
     MealType.SNACK -> "Collation"
     MealType.PRE_WORKOUT -> "Pré-workout"
     MealType.POST_WORKOUT -> "Post-workout"
+}
+
+/**
+ * Acces au classement des aliments par cout proteique. Place sous les macros :
+ * la question « qu'est-ce que j'achete » vient juste apres « ou j'en suis ».
+ */
+@Composable
+private fun ProteinValueShortcut(onClick: () -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                "Cout proteique",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
+            )
+            Text(
+                "Quelle source de proteine rapporte le plus a budget donne",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
 }

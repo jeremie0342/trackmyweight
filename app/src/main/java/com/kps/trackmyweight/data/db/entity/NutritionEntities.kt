@@ -68,6 +68,18 @@ data class FoodPortionAliasEntity(
     val equivalentG: Float,
 )
 
+/**
+ * Aliment classé par son coût protéique. Projection de lecture, pas une table.
+ */
+data class ProteinValueRow(
+    val foodId: Long,
+    val name: String,
+    val proteinPer100g: Float,
+    /** Coût pour obtenir 1 g de protéine, dans [currency]. */
+    val costPerGramProtein: Float,
+    val currency: String,
+)
+
 @Entity(
     tableName = "food_price",
     foreignKeys = [

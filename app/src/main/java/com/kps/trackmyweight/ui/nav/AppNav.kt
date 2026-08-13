@@ -36,6 +36,7 @@ import com.kps.trackmyweight.ui.habits.HabitsScreen
 import com.kps.trackmyweight.ui.home.HomeScreen
 import com.kps.trackmyweight.ui.measurements.MeasurementsScreen
 import com.kps.trackmyweight.ui.nutrition.NutritionScreen
+import com.kps.trackmyweight.ui.nutrition.cost.ProteinValueScreen
 import com.kps.trackmyweight.ui.photos.CameraCaptureScreen
 import com.kps.trackmyweight.ui.photos.PhotosScreen
 import com.kps.trackmyweight.ui.pulse.PulsePpgScreen
@@ -131,6 +132,9 @@ fun AppNavHost(navController: NavHostController) {
         ) {
             ExerciseDetailScreen(onBack = { navController.popBackStack() })
         }
+        composable("protein_value") {
+            ProteinValueScreen(onBack = { navController.popBackStack() })
+        }
         composable("rotations") {
             RotationsScreen(onBack = { navController.popBackStack() })
         }
@@ -217,7 +221,9 @@ private fun RootPagerScreen(navController: NavHostController) {
                         onEditTemplate = { id -> navController.navigate("template/${id ?: 0L}") },
                         onOpenCardio = { navController.navigate("cardio") },
                     )
-                    TopLevel.NUTRITION -> NutritionScreen()
+                    TopLevel.NUTRITION -> NutritionScreen(
+                        onOpenProteinValue = { navController.navigate("protein_value") },
+                    )
                     TopLevel.CORPS -> CorpsHubScreen(
                         onOpenWeight = { navController.navigate("weight") },
                         onOpenMeasurements = { navController.navigate("measurements") },

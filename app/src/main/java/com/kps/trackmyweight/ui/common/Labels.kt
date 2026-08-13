@@ -6,6 +6,7 @@ import com.kps.trackmyweight.data.db.enums.ExerciseForce
 import com.kps.trackmyweight.data.db.enums.ExerciseMechanics
 import com.kps.trackmyweight.data.db.enums.MuscleGroup
 import com.kps.trackmyweight.data.db.enums.SetType
+import com.kps.trackmyweight.domain.calc.DistributionQuality
 import com.kps.trackmyweight.domain.calc.VolumeStatus
 import com.kps.trackmyweight.domain.calc.VolumeVerdict
 
@@ -120,4 +121,11 @@ fun VolumeVerdict.adviceFr(): String = when (status) {
     VolumeStatus.WITHIN_RANGE -> "Tu peux monter de ${suggestedSetsDelta} séries"
     VolumeStatus.AT_MAV -> "Maintiens ce volume"
     VolumeStatus.OVER_MRV -> "Retire ${-suggestedSetsDelta} séries, tu ne récupères plus"
+}
+
+fun DistributionQuality.labelFr(): String = when (this) {
+    DistributionQuality.EXCELLENT -> "Excellente"
+    DistributionQuality.GOOD -> "Correcte"
+    DistributionQuality.UNBALANCED -> "Déséquilibrée"
+    DistributionQuality.INSUFFICIENT -> "Insuffisante"
 }
