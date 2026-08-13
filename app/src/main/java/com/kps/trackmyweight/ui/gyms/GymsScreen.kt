@@ -48,6 +48,7 @@ import com.kps.trackmyweight.data.db.enums.EquipmentCategory
 import com.kps.trackmyweight.data.repository.GymRepository
 import com.kps.trackmyweight.ui.common.PrimaryButton
 import com.kps.trackmyweight.ui.common.TextField
+import com.kps.trackmyweight.ui.common.labelFr
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -197,7 +198,7 @@ private fun CreateGymDialog(
                 TextField(label = "Nom de la salle", value = name, onValueChange = { name = it })
                 Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                     byCat.forEach { (cat, list) ->
-                        Text(cat.name, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 6.dp))
+                        Text(cat.labelFr(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 6.dp))
                         list.forEach { eq ->
                             Row(
                                 modifier = Modifier

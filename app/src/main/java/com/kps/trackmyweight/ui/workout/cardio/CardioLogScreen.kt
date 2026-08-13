@@ -50,6 +50,7 @@ import com.kps.trackmyweight.domain.calc.MetCalories
 import com.kps.trackmyweight.ui.common.ChoiceTile
 import com.kps.trackmyweight.ui.common.NumericField
 import com.kps.trackmyweight.ui.common.PrimaryButton
+import com.kps.trackmyweight.ui.common.labelFr
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -331,22 +332,4 @@ private fun CardioRow(s: CardioSessionEntity) {
             Text("${s.date} · ${s.caloriesEstimated.toInt()} kcal", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
-}
-
-internal fun CardioType.labelFr() = when (this) {
-    CardioType.WALK -> "Marche"
-    CardioType.RUN -> "Course"
-    CardioType.LISS -> "LISS"
-    CardioType.BIKE -> "Vélo"
-    CardioType.ROWER -> "Rameur"
-    CardioType.ELLIPTICAL -> "Elliptique"
-    CardioType.JUMP_ROPE -> "Corde à sauter"
-    CardioType.HIIT -> "HIIT"
-    CardioType.SWIM -> "Natation"
-    CardioType.BATTLE_ROPES -> "Battle ropes"
-    CardioType.JUMPING_JACKS -> "Jumping jacks"
-    CardioType.BURPEES -> "Burpees"
-    CardioType.MOUNTAIN_CLIMBERS -> "Mountain climbers"
-    CardioType.STAIR_MASTER -> "Stair master"
-    CardioType.OTHER -> "Autre"
 }

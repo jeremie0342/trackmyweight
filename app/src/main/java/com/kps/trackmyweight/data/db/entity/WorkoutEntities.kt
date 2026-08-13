@@ -54,6 +54,11 @@ data class TemplateExerciseEntity(
     val targetWeightKg: Float? = null,
     val restSecOverride: Int? = null,
     val notes: String? = null,
+    /**
+     * Exercices partageant ce numéro : enchaînés en superset, sans repos entre
+     * eux. Null = exercice isolé. Le numéro n'a de sens qu'au sein d'un template.
+     */
+    val supersetGroup: Int? = null,
 )
 
 @Entity(
@@ -174,6 +179,20 @@ data class PerformedExerciseEntity(
     val exerciseNameSnapshot: String,
     val orderIndex: Int,
     val notes: String? = null,
+
+    // ── Snapshot du plan, figé au lancement de la séance ──────────────────
+    // Recopié depuis le template puis ajustable à la préparation. Snapshot et
+    // non référence : modifier le template plus tard ne doit pas réécrire
+    // l'histoire, et un ajustement « juste pour aujourd'hui » ne doit pas
+    // contaminer le template. Null = séance libre, sans objectif.
+    val targetSets: Int? = null,
+    val targetRepsMin: Int? = null,
+    val targetRepsMax: Int? = null,
+    val targetRpe: Float? = null,
+    val targetWeightKg: Float? = null,
+    val restSecOverride: Int? = null,
+    /** Voir [TemplateExerciseEntity.supersetGroup]. Figé au lancement, comme le reste du plan. */
+    val supersetGroup: Int? = null,
 )
 
 @Entity(
@@ -218,6 +237,26 @@ data class PersonalRecordEntity(
     val achievedAt: Instant,
     val sessionId: Long,
     val setId: Long? = null,
+)
+
+/** Séries et volume cumulés pour un exercice sur une période. */
+data class ExerciseSetCountRow(
+    val exerciseId: Long,
+    val totalSets: Int,
+    val totalReps: Int,
+    val totalVolumeKg: Float,
+)
+
+/**
+ * Ligne d'agrégat renvoyée par les requêtes de tonnage. Pas une table :
+ * la valeur est recalculée à la demande depuis les séries.
+ */
+data class MonthlyTonnageRow(
+    /** Format `YYYY-MM`. */
+    val month: String,
+    val volumeKg: Float,
+    val setCount: Int,
+    val sessionCount: Int,
 )
 
 @Entity(

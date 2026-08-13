@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.LocalDrink
+import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -45,12 +46,17 @@ import com.kps.trackmyweight.data.db.entity.HabitDefinitionEntity
 import com.kps.trackmyweight.domain.calc.ReadinessLevel
 import com.kps.trackmyweight.domain.calc.SleepDuration
 import com.kps.trackmyweight.ui.common.PrimaryButton
+import com.kps.trackmyweight.ui.common.formatDateFr
+import com.kps.trackmyweight.ui.common.formatFr
+import com.kps.trackmyweight.ui.common.formatTimeFr
+import kotlinx.datetime.Instant
 
 @Composable
 fun HomeScreen(
     onOpenReports: () -> Unit = {},
     onOpenPulsePpg: () -> Unit = {},
     onOpenHabits: () -> Unit = {},
+    onResumeSession: (Long) -> Unit = {},
     vm: HomeViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
@@ -75,10 +81,17 @@ fun HomeScreen(
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                state.date.toString(),
+                state.date.formatFr(),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+
+            state.activeSession?.let { active ->
+                ResumeSessionCard(
+                    startedAt = active.startedAt,
+                    onResume = { onResumeSession(active.id) },
+                )
+            }
 
             ReportsShortcut(onClick = onOpenReports)
             ReadinessCard(state = state, onOpen = { showReadiness = true }, onHelp = { showReadinessHelp = true })
@@ -148,6 +161,43 @@ fun HomeScreen(
 }
 
 // ─────────── Cards ───────────
+
+/**
+ * Rappel d'une séance en cours. Doublon assumé du bandeau de l'onglet Séance :
+ * l'accueil est le premier écran ouvert, et c'est là qu'on se rend compte qu'on
+ * a laissé une séance ouverte la veille.
+ */
+@Composable
+private fun ResumeSessionCard(startedAt: Instant, onResume: () -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
+        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onResume),
+    ) {
+        Row(
+            modifier = Modifier.padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Séance en cours",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+                Text(
+                    "Commencée le ${startedAt.formatDateFr()} à ${startedAt.formatTimeFr()}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+            }
+            Icon(
+                Icons.Outlined.PlayArrow,
+                contentDescription = "Reprendre",
+                tint = MaterialTheme.colorScheme.onPrimary,
+            )
+        }
+    }
+}
 
 @Composable
 private fun ReportsShortcut(onClick: () -> Unit) {

@@ -23,6 +23,7 @@ import com.kps.trackmyweight.data.db.entity.DietPhaseEntity
 import com.kps.trackmyweight.data.db.entity.EquipmentEntity
 import com.kps.trackmyweight.data.db.entity.ExerciseEntity
 import com.kps.trackmyweight.data.db.entity.ExerciseEquipmentRequirementEntity
+import com.kps.trackmyweight.data.db.entity.ExerciseMaxLoadEntity
 import com.kps.trackmyweight.data.db.entity.ExerciseSubstitutionEntity
 import com.kps.trackmyweight.data.db.entity.FavoriteMealEntity
 import com.kps.trackmyweight.data.db.entity.FavoriteMealEntryEntity
@@ -78,6 +79,7 @@ import com.kps.trackmyweight.data.db.entity.WorkoutTemplateEntity
         // Exercises
         ExerciseEntity::class,
         ExerciseEquipmentRequirementEntity::class,
+        ExerciseMaxLoadEntity::class,
         ExerciseSubstitutionEntity::class,
         // Workout
         WorkoutTemplateEntity::class,
@@ -123,7 +125,7 @@ import com.kps.trackmyweight.data.db.entity.WorkoutTemplateEntity
         BackupRecordEntity::class,
         AppEventEntity::class,
     ],
-    version = 5,
+    version = 8,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)

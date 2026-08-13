@@ -40,7 +40,9 @@ import com.kps.trackmyweight.data.db.entity.EquipmentEntity
 import com.kps.trackmyweight.data.db.entity.GymEntity
 import com.kps.trackmyweight.data.repository.GymRepository
 import com.kps.trackmyweight.ui.common.BackHeader
+import com.kps.trackmyweight.ui.common.EquipmentThumbnail
 import com.kps.trackmyweight.ui.common.TextField
+import com.kps.trackmyweight.ui.common.labelFr
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -149,7 +151,7 @@ fun GymEditScreen(
 
             byCategory.forEach { (cat, list) ->
                 Text(
-                    cat.name,
+                    cat.labelFr(),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp),
@@ -162,7 +164,16 @@ fun GymEditScreen(
                             .clickable { vm.toggleEquipment(eq.id) }
                             .padding(vertical = 6.dp, horizontal = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
+                        // Photo de la machine : cocher « hack squat » sans savoir à
+                        // quoi ça ressemble n'a pas de sens. Les accessoires sans
+                        // visuel distinctif n'en ont pas et n'affichent rien.
+                        EquipmentThumbnail(
+                            equipmentKey = eq.key,
+                            contentDescription = eq.displayName,
+                            size = 44.dp,
+                        )
                         Text(eq.displayName, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                         Switch(checked = eq.id in state.selectedIds, onCheckedChange = null)
                     }

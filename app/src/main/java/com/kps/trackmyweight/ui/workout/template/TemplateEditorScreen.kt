@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -42,14 +44,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kps.trackmyweight.data.db.entity.ExerciseEntity
+import com.kps.trackmyweight.ui.common.ExerciseThumbnail
 import com.kps.trackmyweight.ui.common.NumericField
 import com.kps.trackmyweight.ui.common.PrimaryButton
 import com.kps.trackmyweight.ui.common.TextField
+import com.kps.trackmyweight.ui.common.labelFr
+import com.kps.trackmyweight.ui.workout.setup.supersetLetter
 
 @Composable
 fun TemplateEditorScreen(
     templateId: Long?,
     onSaved: () -> Unit,
+    onOpenExercise: (Long) -> Unit = {},
     onBack: () -> Unit = onSaved,
     vm: TemplateEditorViewModel = hiltViewModel(),
 ) {
@@ -108,6 +114,12 @@ fun TemplateEditorScreen(
                         onChangeMin = { v -> vm.updateExercise(i) { it.copy(targetRepsMin = v) } },
                         onChangeMax = { v -> vm.updateExercise(i) { it.copy(targetRepsMax = v) } },
                         onRemove = { vm.removeAt(i) },
+                        onOpenDetail = { onOpenExercise(d.exercise.id) },
+                        isLast = i == state.draftExercises.lastIndex,
+                        linkedWithNext = i < state.draftExercises.lastIndex &&
+                            d.supersetGroup != null &&
+                            d.supersetGroup == state.draftExercises[i + 1].supersetGroup,
+                        onToggleSuperset = { vm.toggleSupersetWithNext(i) },
                     )
                 }
             }
@@ -135,6 +147,10 @@ private fun DraftExerciseCard(
     onChangeMin: (Int?) -> Unit,
     onChangeMax: (Int?) -> Unit,
     onRemove: () -> Unit,
+    onOpenDetail: () -> Unit,
+    isLast: Boolean,
+    linkedWithNext: Boolean,
+    onToggleSuperset: () -> Unit,
 ) {
     var setsText by remember(draft.exercise.id) { mutableStateOf(draft.targetSets.toString()) }
     var minText by remember(draft.exercise.id) { mutableStateOf(draft.targetRepsMin?.toString().orEmpty()) }
@@ -146,10 +162,39 @@ private fun DraftExerciseCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(draft.exercise.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                ExerciseThumbnail(
+                    mediaPath = draft.exercise.mediaPath,
+                    contentDescription = draft.exercise.name,
+                    modifier = Modifier.clickable(onClick = onOpenDetail),
+                )
+                Column(modifier = Modifier.weight(1f).clickable(onClick = onOpenDetail)) {
+                    draft.supersetGroup?.let { group ->
+                        Text(
+                            "Superset ${supersetLetter(group)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    Text(
+                        draft.exercise.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
                 IconButton(onClick = onRemove) {
                     Icon(Icons.Outlined.Close, contentDescription = "Retirer", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            if (!isLast) {
+                TextButton(onClick = onToggleSuperset) {
+                    Text(
+                        if (linkedWithNext) "Dissocier du suivant"
+                        else "Enchaîner avec le suivant (superset)",
+                    )
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -190,18 +235,24 @@ private fun AddExerciseDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.height(400.dp)) {
                 TextField(label = "Rechercher", value = query, onValueChange = { query = it })
-                Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    filtered.take(60).forEach { ex ->
+                LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    items(filtered, key = { it.id }) { ex ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(8.dp))
                                 .clickable { onPick(ex) }
                                 .padding(vertical = 10.dp, horizontal = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
+                            ExerciseThumbnail(
+                                mediaPath = ex.mediaPath,
+                                contentDescription = ex.name,
+                            )
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(ex.name, style = MaterialTheme.typography.bodyLarge)
-                                Text(ex.primaryMuscle.name, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(ex.primaryMuscle.labelFr(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }

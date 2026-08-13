@@ -141,6 +141,10 @@ fun WorkoutSessionEntity.toB(
             sets = setsByPerformed[pe].orEmpty().map { s ->
                 BPerformedSet(s.setNumber, s.weightKg, s.reps, s.rpe, s.type, s.restBeforeSec)
             },
+            targetSets = pe.targetSets, targetRepsMin = pe.targetRepsMin,
+            targetRepsMax = pe.targetRepsMax, targetRpe = pe.targetRpe,
+            targetWeightKg = pe.targetWeightKg, restSecOverride = pe.restSecOverride,
+            supersetGroup = pe.supersetGroup,
         )
     },
 )
@@ -155,6 +159,9 @@ fun BWorkoutSession.toEntity() = WorkoutSessionEntity(
 fun BPerformedExercise.toEntity(sessionId: Long, exerciseId: Long) = PerformedExerciseEntity(
     sessionId = sessionId, exerciseId = exerciseId,
     exerciseNameSnapshot = exerciseName, orderIndex = orderIndex, notes = notes,
+    targetSets = targetSets, targetRepsMin = targetRepsMin, targetRepsMax = targetRepsMax,
+    targetRpe = targetRpe, targetWeightKg = targetWeightKg, restSecOverride = restSecOverride,
+    supersetGroup = supersetGroup,
 )
 fun BPerformedSet.toEntity(performedExerciseId: Long) = PerformedSetEntity(
     performedExerciseId = performedExerciseId, setNumber = setNumber,

@@ -89,6 +89,13 @@
             </intent-filter>
         </activity-alias>
 
+        <!-- Fin du temps de repos entre les séries. Déclenché par AlarmManager,
+             donc doit survivre à l'app fermée : d'où un receiver déclaré ici et
+             non enregistré dynamiquement. -->
+        <receiver
+            android:name=".workout.rest.RestAlarmReceiver"
+            android:exported="false" />
+
         <receiver
             android:name=".widget.WeightWidgetReceiver"
             android:exported="false">

@@ -483,6 +483,15 @@ fun SettingsScreen(
                     Text("À propos", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text("TrackMyWeight", style = MaterialTheme.typography.titleMedium)
                     Text("Suivi de transformation physique — assistant complet.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(12.dp))
+                    Text("Crédits", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "Visuels et données de référence des exercices : free-exercise-db " +
+                            "(github.com/yuhonas/free-exercise-db), placé dans le domaine public " +
+                            "sous The Unlicense.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
 

@@ -23,6 +23,8 @@ data class TemplateDraftExercise(
     val targetSets: Int,
     val targetRepsMin: Int?,
     val targetRepsMax: Int?,
+    /** Exercices consécutifs partageant ce numéro : superset. Null = isolé. */
+    val supersetGroup: Int? = null,
 )
 
 data class TemplateEditorUiState(
@@ -65,6 +67,7 @@ class TemplateEditorViewModel @Inject constructor(
                                 targetSets = te.templateExercise.targetSets,
                                 targetRepsMin = te.templateExercise.targetRepsMin,
                                 targetRepsMax = te.templateExercise.targetRepsMax,
+                                supersetGroup = te.templateExercise.supersetGroup,
                             )
                         },
                     )
@@ -84,7 +87,61 @@ class TemplateEditorViewModel @Inject constructor(
 
     fun removeAt(index: Int) {
         _state.update {
-            it.copy(draftExercises = it.draftExercises.toMutableList().apply { removeAt(index) })
+            val remaining = it.draftExercises.toMutableList().apply { removeAt(index) }
+            it.copy(draftExercises = renumberSupersets(remaining))
+        }
+    }
+
+    /**
+     * Associe ou dissocie cet exercice de celui qui le suit.
+     * Même règle qu'à la préparation : les supersets sont consécutifs.
+     */
+    fun toggleSupersetWithNext(index: Int) {
+        _state.update { s ->
+            val plan = s.draftExercises
+            if (index !in plan.indices || index + 1 !in plan.indices) return@update s
+            val current = plan[index]
+            val next = plan[index + 1]
+            val updated = if (current.supersetGroup != null && current.supersetGroup == next.supersetGroup) {
+                val group = current.supersetGroup
+                plan.mapIndexed { i, d ->
+                    if (i > index && d.supersetGroup == group) d.copy(supersetGroup = null) else d
+                }
+            } else {
+                val group = current.supersetGroup
+                    ?: ((plan.mapNotNull { it.supersetGroup }.maxOrNull() ?: 0) + 1)
+                plan.mapIndexed { i, d ->
+                    if (i == index || i == index + 1) d.copy(supersetGroup = group) else d
+                }
+            }
+            s.copy(draftExercises = renumberSupersets(updated))
+        }
+    }
+
+    /** Voir `SessionSetupViewModel` : un groupe réduit à un exercice est dissous. */
+    private fun renumberSupersets(plan: List<TemplateDraftExercise>): List<TemplateDraftExercise> {
+        var nextGroup = 0
+        var previousGroup: Int? = null
+        var currentGroup: Int? = null
+        val remapped = plan.map { draft ->
+            when {
+                draft.supersetGroup == null -> {
+                    previousGroup = null
+                    currentGroup = null
+                    draft
+                }
+                draft.supersetGroup == previousGroup -> draft.copy(supersetGroup = currentGroup)
+                else -> {
+                    previousGroup = draft.supersetGroup
+                    nextGroup++
+                    currentGroup = nextGroup
+                    draft.copy(supersetGroup = nextGroup)
+                }
+            }
+        }
+        val counts = remapped.mapNotNull { it.supersetGroup }.groupingBy { it }.eachCount()
+        return remapped.map { d ->
+            if (d.supersetGroup != null && counts[d.supersetGroup] == 1) d.copy(supersetGroup = null) else d
         }
     }
 
@@ -120,6 +177,7 @@ class TemplateEditorViewModel @Inject constructor(
                     targetSets = d.targetSets,
                     targetRepsMin = d.targetRepsMin,
                     targetRepsMax = d.targetRepsMax,
+                    supersetGroup = d.supersetGroup,
                 )
             }
             runCatching { workoutRepo.saveTemplate(templateEntity, exercisesEntities) }

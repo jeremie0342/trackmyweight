@@ -2,6 +2,7 @@ package com.kps.trackmyweight.di
 
 import android.content.Context
 import androidx.room.Room
+import com.kps.trackmyweight.data.db.ALL_MIGRATIONS
 import com.kps.trackmyweight.data.db.TrackMyWeightDatabase
 import com.kps.trackmyweight.data.db.dao.AnalyticsMetaDao
 import com.kps.trackmyweight.data.db.dao.BodyDao
@@ -33,9 +34,15 @@ object DatabaseModule {
         )
             // Foreign keys sont activées automatiquement par Room, mais on est explicite.
             .setJournalMode(androidx.room.RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
-            // Beta : pas de migrations formelles, on drop tout à chaque bump de schéma.
-            // À remplacer par de vraies Migration(from, to) après v1.0 stable.
-            .fallbackToDestructiveMigration()
+            .addMigrations(*ALL_MIGRATIONS)
+            // Le repli destructif est volontairement limité aux versions pré-5.
+            //
+            // Il était auparavant global : n'importe quel bump de schéma effaçait
+            // silencieusement toutes les données de l'utilisateur. Pire, il masquait
+            // les migrations boguées — Room se rabattait sur l'effacement au lieu de
+            // signaler l'erreur. Désormais, à partir de la v5, une migration absente
+            // ou incorrecte provoque un crash explicite : bruyant, mais non destructif.
+            .fallbackToDestructiveMigrationFrom(1, 2, 3, 4)
             .build()
 
     @Provides fun provideUserDao(db: TrackMyWeightDatabase): UserDao = db.userDao()

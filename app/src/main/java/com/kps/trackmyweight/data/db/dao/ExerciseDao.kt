@@ -4,6 +4,8 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
+import com.kps.trackmyweight.data.db.entity.EquipmentEntity
 import com.kps.trackmyweight.data.db.entity.ExerciseEntity
 import com.kps.trackmyweight.data.db.entity.ExerciseEquipmentRequirementEntity
 import com.kps.trackmyweight.data.db.entity.ExerciseSubstitutionEntity
@@ -14,14 +16,30 @@ import kotlinx.coroutines.flow.Flow
 interface ExerciseDao {
 
     // @Insert(REPLACE) car unique(slug).
+    // ATTENTION : sur conflit, Room fait DELETE + INSERT. Les FK ON DELETE CASCADE
+    // qui pointent vers `exercise` (personal_record notamment) partiraient avec, et
+    // le RESTRICT de performed_exercise ferait échouer l'opération. Ne l'utiliser que
+    // pour une véritable insertion — pour modifier une ligne existante, [updateExercise].
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertExercise(exercise: ExerciseEntity): Long
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAll(exercises: List<ExerciseEntity>): List<Long>
 
+    /** Modifie une ligne existante par sa clé primaire, sans DELETE préalable. */
+    @Update
+    suspend fun updateExercise(exercise: ExerciseEntity)
+
     @Query("SELECT * FROM exercise WHERE isDeleted = 0 ORDER BY name")
     fun observeAll(): Flow<List<ExerciseEntity>>
+
+    /**
+     * Inclut les exercices soft-deleted, contrairement à [observeAll].
+     * Nécessaire à la synchronisation du catalogue : un slug soft-deleted occupe
+     * toujours l'index unique, il ne faut pas tenter de le réinsérer.
+     */
+    @Query("SELECT * FROM exercise")
+    suspend fun getAllIncludingDeleted(): List<ExerciseEntity>
 
     @Query("SELECT * FROM exercise WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): ExerciseEntity?
@@ -53,6 +71,15 @@ interface ExerciseDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertRequirements(reqs: List<ExerciseEquipmentRequirementEntity>)
+
+    /** Équipements requis par un exercice, pour la fiche exercice. */
+    @Query("""
+        SELECT eq.* FROM equipment eq
+        INNER JOIN exercise_equipment_requirement req ON req.equipmentId = eq.id
+        WHERE req.exerciseId = :exerciseId
+        ORDER BY eq.displayName
+    """)
+    suspend fun getEquipmentFor(exerciseId: Long): List<EquipmentEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSubstitutions(subs: List<ExerciseSubstitutionEntity>)

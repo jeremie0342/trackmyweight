@@ -6,6 +6,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.kps.trackmyweight.data.db.enums.ExerciseForce
 import com.kps.trackmyweight.data.db.enums.ExerciseMechanics
+import com.kps.trackmyweight.data.db.enums.MaxLoadSource
 import com.kps.trackmyweight.data.db.enums.MuscleGroup
 import kotlinx.datetime.Instant
 
@@ -31,6 +32,42 @@ data class ExerciseEntity(
     val isDeleted: Boolean = false,
     val createdAt: Instant,
     val updatedAt: Instant,
+)
+
+/**
+ * Charge maximale de référence pour un exercice, à une date donnée.
+ *
+ * Table historisée : chaque entrée est un point de mesure, jamais écrasé. C'est
+ * ce qui permet de tracer l'évolution de la force dans le temps plutôt que de
+ * n'afficher qu'une valeur courante.
+ *
+ * Distincte de `personal_record`, qui est un palmarès multi-catégories rattaché
+ * à une séance (`sessionId` non nul). Ici une valeur peut très bien être saisie
+ * à la main, sans séance associée.
+ */
+@Entity(
+    tableName = "exercise_max_load",
+    foreignKeys = [
+        ForeignKey(
+            entity = ExerciseEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["exerciseId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index(value = ["exerciseId", "measuredAt"])],
+)
+data class ExerciseMaxLoadEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val exerciseId: Long,
+    /** 1RM de référence en kg. */
+    val oneRmKg: Float,
+    val source: MaxLoadSource,
+    /** Série d'origine quand la valeur est estimée ou testée. */
+    val sourceWeightKg: Float? = null,
+    val sourceReps: Int? = null,
+    val measuredAt: Instant,
+    val notes: String? = null,
 )
 
 @Entity(

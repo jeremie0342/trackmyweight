@@ -43,8 +43,12 @@ import com.kps.trackmyweight.ui.reports.ReportsScreen
 import com.kps.trackmyweight.ui.settings.SettingsScreen
 import com.kps.trackmyweight.ui.weight.WeightScreen
 import com.kps.trackmyweight.ui.workout.WorkoutOverviewScreen
+import com.kps.trackmyweight.ui.workout.exercise.ExerciseDetailScreen
+import com.kps.trackmyweight.ui.workout.progress.ProgressionScreen
+import com.kps.trackmyweight.ui.workout.rotation.RotationsScreen
 import com.kps.trackmyweight.ui.workout.cardio.CardioLogScreen
 import com.kps.trackmyweight.ui.workout.session.SessionActiveScreen
+import com.kps.trackmyweight.ui.workout.setup.SessionSetupScreen
 import com.kps.trackmyweight.ui.workout.template.TemplateEditorScreen
 import kotlinx.coroutines.launch
 
@@ -84,7 +88,26 @@ fun AppNavHost(navController: NavHostController) {
         ) {
             TemplateEditorScreen(
                 templateId = it.arguments?.getLong("id")?.takeIf { v -> v > 0L },
+                onOpenExercise = { id -> navController.navigate("exercise/$id") },
                 onSaved = { navController.popBackStack() },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = "session_setup/{templateId}",
+            arguments = listOf(
+                androidx.navigation.navArgument("templateId") { type = androidx.navigation.NavType.LongType },
+            ),
+        ) {
+            SessionSetupScreen(
+                onOpenExercise = { id -> navController.navigate("exercise/$id") },
+                onStarted = { sessionId ->
+                    // La préparation ne doit pas rester dans la pile : un retour
+                    // depuis la séance ramène à l'onglet Séance, pas au formulaire.
+                    navController.navigate("session/$sessionId") {
+                        popUpTo("session_setup/{templateId}") { inclusive = true }
+                    }
+                },
                 onBack = { navController.popBackStack() },
             )
         }
@@ -95,8 +118,26 @@ fun AppNavHost(navController: NavHostController) {
             val id = backStack.arguments?.getLong("id") ?: 0L
             SessionActiveScreen(
                 sessionId = id,
+                onOpenExercise = { exerciseId -> navController.navigate("exercise/$exerciseId") },
                 onFinished = { navController.popBackStack() },
+                onLeaveRunning = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = "exercise/{exerciseId}",
+            arguments = listOf(
+                androidx.navigation.navArgument("exerciseId") { type = androidx.navigation.NavType.LongType },
+            ),
+        ) {
+            ExerciseDetailScreen(onBack = { navController.popBackStack() })
+        }
+        composable("rotations") {
+            RotationsScreen(onBack = { navController.popBackStack() })
+        }
+        composable("progression") {
+            ProgressionScreen(
                 onBack = { navController.popBackStack() },
+                onOpenExercise = { id -> navController.navigate("exercise/$id") },
             )
         }
         composable("weight") { WeightScreen(onBack = { navController.popBackStack() }) }
@@ -164,9 +205,15 @@ private fun RootPagerScreen(navController: NavHostController) {
                         onOpenReports = { navController.navigate("reports") },
                         onOpenPulsePpg = { navController.navigate("pulse_ppg") },
                         onOpenHabits = { navController.navigate("habits") },
+                        onResumeSession = { sessionId -> navController.navigate("session/$sessionId") },
                     )
                     TopLevel.WORKOUT -> WorkoutOverviewScreen(
-                        onStartSession = { sessionId -> navController.navigate("session/$sessionId") },
+                        onPrepareSession = { templateId ->
+                            navController.navigate("session_setup/${templateId ?: 0L}")
+                        },
+                        onResumeSession = { sessionId -> navController.navigate("session/$sessionId") },
+                        onOpenProgression = { navController.navigate("progression") },
+                        onOpenRotations = { navController.navigate("rotations") },
                         onEditTemplate = { id -> navController.navigate("template/${id ?: 0L}") },
                         onOpenCardio = { navController.navigate("cardio") },
                     )

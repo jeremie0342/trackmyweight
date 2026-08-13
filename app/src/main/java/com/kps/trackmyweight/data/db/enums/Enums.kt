@@ -53,6 +53,16 @@ enum class MuscleGroup {
 
 @Serializable enum class SetType { WORKING, WARMUP, DROP, FAILURE, BACKOFF, AMRAP }
 
+/**
+ * Provenance d'une charge maximale de référence.
+ *
+ *  - TESTED   : vrai test de force, une répétition à la charge indiquée.
+ *  - DECLARED : valeur saisie de mémoire ou donnée par le coach.
+ *  - ESTIMATED: calculée depuis une série réelle (Epley/Brzycki). Alimentée
+ *               automatiquement dès qu'un record de 1RM estimé tombe.
+ */
+@Serializable enum class MaxLoadSource { TESTED, DECLARED, ESTIMATED }
+
 @Serializable
 enum class PrKind {
     ONE_RM_EST, THREE_RM, FIVE_RM,

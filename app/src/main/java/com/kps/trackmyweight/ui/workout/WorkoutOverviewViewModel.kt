@@ -6,7 +6,6 @@ import com.kps.trackmyweight.data.db.entity.PersonalRecordEntity
 import com.kps.trackmyweight.data.db.entity.WorkoutSessionEntity
 import com.kps.trackmyweight.data.db.entity.WorkoutTemplateEntity
 import com.kps.trackmyweight.data.repository.ExerciseRepository
-import com.kps.trackmyweight.data.repository.GymRepository
 import com.kps.trackmyweight.data.repository.WorkoutRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,49 +20,47 @@ data class WorkoutOverviewUiState(
     val templates: List<WorkoutTemplateEntity> = emptyList(),
     val recentSessions: List<WorkoutSessionEntity> = emptyList(),
     val recentPrs: List<PersonalRecordEntity> = emptyList(),
+    val activeSession: WorkoutSessionEntity? = null,
+    /** Template proposé par la rotation calée sur le jour courant. */
+    val rotationSuggestion: WorkoutTemplateEntity? = null,
     val isLoading: Boolean = true,
-    val startingSessionId: Long? = null,
 )
 
 @HiltViewModel
 class WorkoutOverviewViewModel @Inject constructor(
     private val workoutRepo: WorkoutRepository,
     private val exerciseRepo: ExerciseRepository,
-    private val gymRepo: GymRepository,
 ) : ViewModel() {
 
-    private val _startingSessionId = MutableStateFlow<Long?>(null)
+    private val rotationSuggestion = MutableStateFlow<WorkoutTemplateEntity?>(null)
 
     val state: StateFlow<WorkoutOverviewUiState> = combine(
         workoutRepo.observeTemplates(),
-        workoutRepo.observeRecentSessions(10),
+        workoutRepo.observeFinishedSessions(10),
         workoutRepo.observeRecentPrs(10),
-        _startingSessionId,
-    ) { templates, sessions, prs, starting ->
+        workoutRepo.observeActiveSession(),
+        rotationSuggestion,
+    ) { templates, sessions, prs, active, suggestion ->
         WorkoutOverviewUiState(
             templates = templates,
             recentSessions = sessions,
             recentPrs = prs,
+            activeSession = active,
+            rotationSuggestion = suggestion,
             isLoading = false,
-            startingSessionId = starting,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), WorkoutOverviewUiState())
 
     init {
-        viewModelScope.launch { exerciseRepo.seedIfEmpty() }
-    }
-
-    /** Démarre une nouvelle séance basée sur un template (ou libre si null). */
-    fun startSession(templateId: Long?, onStarted: (Long) -> Unit) {
         viewModelScope.launch {
-            val gymId = gymRepo.getDefaultGym()?.id
-            val id = workoutRepo.startSession(templateId, gymId)
-            _startingSessionId.value = id
-            onStarted(id)
+            exerciseRepo.syncCatalog()
+            // Rattrape les séances laissées ouvertes par l'ancien comportement
+            // (quitter l'écran ne clôturait rien). Sans ce ménage, le bandeau de
+            // reprise proposerait indéfiniment une séance vieille de plusieurs jours.
+            workoutRepo.closeStaleSessions()
+            rotationSuggestion.value = workoutRepo.todaysRotationSuggestion()
         }
     }
-
-    fun consumeStartingId() { _startingSessionId.value = null }
 
     /** Renvoie le texte formaté à envoyer au coach pour une session. */
     suspend fun coachTextFor(sessionId: Long): String =

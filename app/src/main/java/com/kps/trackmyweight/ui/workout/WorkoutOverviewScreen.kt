@@ -1,9 +1,9 @@
 package com.kps.trackmyweight.ui.workout
 
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,27 +14,27 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import android.content.Intent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material3.IconButton
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.platform.LocalContext
-import kotlinx.coroutines.launch
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -42,12 +42,20 @@ import com.kps.trackmyweight.data.db.entity.PersonalRecordEntity
 import com.kps.trackmyweight.data.db.entity.WorkoutSessionEntity
 import com.kps.trackmyweight.data.db.entity.WorkoutTemplateEntity
 import com.kps.trackmyweight.data.db.enums.PrKind
+import com.kps.trackmyweight.ui.common.formatDateFr
+import com.kps.trackmyweight.ui.common.formatFr
+import com.kps.trackmyweight.ui.common.formatTimeFr
+import com.kps.trackmyweight.ui.theme.tabular
+import kotlinx.coroutines.launch
 
 @Composable
 fun WorkoutOverviewScreen(
-    onStartSession: (Long) -> Unit,
+    onPrepareSession: (Long?) -> Unit,
+    onResumeSession: (Long) -> Unit,
     onEditTemplate: (Long?) -> Unit = {},
     onOpenCardio: () -> Unit = {},
+    onOpenProgression: () -> Unit = {},
+    onOpenRotations: () -> Unit = {},
     vm: WorkoutOverviewViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
@@ -56,7 +64,7 @@ fun WorkoutOverviewScreen(
         containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { vm.startSession(templateId = null, onStarted = onStartSession) },
+                onClick = { onPrepareSession(null) },
                 icon = { Icon(Icons.Outlined.PlayArrow, null) },
                 text = { Text("Séance libre") },
                 containerColor = MaterialTheme.colorScheme.primary,
@@ -73,11 +81,45 @@ fun WorkoutOverviewScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             Spacer(Modifier.height(16.dp))
-            Text(
-                "Séance",
-                style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.SemiBold,
-            )
+            Text("Séance", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.SemiBold)
+
+            state.activeSession?.let { active ->
+                ResumeCard(session = active, onResume = { onResumeSession(active.id) })
+            }
+
+            state.rotationSuggestion?.let { suggested ->
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                        .clickable { onPrepareSession(suggested.id) },
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "Au programme aujourd'hui",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                suggested.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        }
+                        Icon(
+                            Icons.Outlined.PlayArrow,
+                            contentDescription = "Préparer",
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+            }
 
             Section("Templates") {
                 if (state.templates.isEmpty()) {
@@ -91,24 +133,30 @@ fun WorkoutOverviewScreen(
                         state.templates.forEach { t ->
                             TemplateRow(
                                 t = t,
-                                onStart = { vm.startSession(t.id, onStartSession) },
+                                onPrepare = { onPrepareSession(t.id) },
                                 onEdit = { onEditTemplate(t.id) },
                             )
                         }
                     }
                 }
-                androidx.compose.material3.TextButton(
-                    onClick = { onEditTemplate(null) },
-                    modifier = Modifier,
-                ) { Text("+ Nouveau template") }
+                TextButton(onClick = { onEditTemplate(null) }) { Text("+ Nouveau template") }
+                TextButton(onClick = onOpenRotations) { Text("Gérer les rotations") }
             }
 
             Section("Cardio") {
-                androidx.compose.material3.Button(
+                Button(
                     onClick = onOpenCardio,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                 ) { Text("Loguer une séance cardio") }
+            }
+
+            Section("Progression") {
+                Button(
+                    onClick = onOpenProgression,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                ) { Text("Charges max et volume mensuel") }
             }
 
             Section("Records récents") {
@@ -128,7 +176,7 @@ fun WorkoutOverviewScreen(
             Section("Historique") {
                 if (state.recentSessions.isEmpty()) {
                     Text(
-                        "Aucune séance loguée.",
+                        "Aucune séance terminée.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -143,7 +191,7 @@ fun WorkoutOverviewScreen(
                                     val intent = Intent(Intent.ACTION_SEND).apply {
                                         type = "text/plain"
                                         putExtra(Intent.EXTRA_TEXT, text)
-                                        putExtra(Intent.EXTRA_SUBJECT, "Séance ${s.date}")
+                                        putExtra(Intent.EXTRA_SUBJECT, "Séance ${s.date.formatFr()}")
                                     }
                                     ctx.startActivity(Intent.createChooser(intent, "Partager la séance"))
                                 }
@@ -157,6 +205,42 @@ fun WorkoutOverviewScreen(
     }
 }
 
+/**
+ * Bandeau de reprise. Sans lui, une séance quittée devenait inaccessible :
+ * elle restait ouverte en base sans qu'aucun écran ne la propose.
+ */
+@Composable
+private fun ResumeCard(session: WorkoutSessionEntity, onResume: () -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
+        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onResume),
+    ) {
+        Row(
+            modifier = Modifier.padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Séance en cours",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+                Text(
+                    "Commencée le ${session.date.formatFr()} à ${session.startedAt.formatTimeFr()}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+            }
+            Icon(
+                Icons.Outlined.PlayArrow,
+                contentDescription = "Reprendre",
+                tint = MaterialTheme.colorScheme.onPrimary,
+            )
+        }
+    }
+}
+
 @Composable
 private fun Section(title: String, content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -166,11 +250,11 @@ private fun Section(title: String, content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun TemplateRow(t: WorkoutTemplateEntity, onStart: () -> Unit, onEdit: () -> Unit) {
+private fun TemplateRow(t: WorkoutTemplateEntity, onPrepare: () -> Unit, onEdit: () -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onStart),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onPrepare),
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -182,8 +266,8 @@ private fun TemplateRow(t: WorkoutTemplateEntity, onStart: () -> Unit, onEdit: (
                     Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            androidx.compose.material3.TextButton(onClick = onEdit) { Text("Modifier") }
-            Icon(Icons.Outlined.PlayArrow, contentDescription = "Démarrer", tint = MaterialTheme.colorScheme.primary)
+            TextButton(onClick = onEdit) { Text("Modifier") }
+            Icon(Icons.Outlined.PlayArrow, contentDescription = "Préparer", tint = MaterialTheme.colorScheme.primary)
         }
     }
 }
@@ -207,8 +291,12 @@ private fun PrRow(pr: PersonalRecordEntity) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(label, style = MaterialTheme.typography.bodyLarge)
-            Text(pr.achievedAt.toString(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(label, style = MaterialTheme.typography.bodyLarge.tabular())
+            Text(
+                pr.achievedAt.formatDateFr(),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -224,10 +312,10 @@ private fun SessionRow(s: WorkoutSessionEntity, onShare: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text("Séance ${s.date}", style = MaterialTheme.typography.bodyLarge)
+            Text("Séance du ${s.date.formatFr()}", style = MaterialTheme.typography.bodyLarge)
             Text(
                 "Volume : %.0f kg%s".format(s.totalVolumeKg, s.sessionRpe?.let { " · RPE $it" }.orEmpty()),
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelSmall.tabular(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }

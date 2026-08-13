@@ -10,11 +10,13 @@ import com.kps.trackmyweight.data.db.entity.HabitDefinitionEntity
 import com.kps.trackmyweight.data.db.entity.SleepEntryEntity
 import com.kps.trackmyweight.data.db.entity.UserProfileEntity
 import com.kps.trackmyweight.data.db.entity.WeightEntryEntity
+import com.kps.trackmyweight.data.db.entity.WorkoutSessionEntity
 import com.kps.trackmyweight.data.repository.GoalRepository
 import com.kps.trackmyweight.data.repository.HabitRepository
 import com.kps.trackmyweight.data.repository.NutritionRepository
 import com.kps.trackmyweight.data.repository.UserProfileRepository
 import com.kps.trackmyweight.data.repository.WeightRepository
+import com.kps.trackmyweight.data.repository.WorkoutRepository
 import com.kps.trackmyweight.domain.calc.ReadinessInputs
 import com.kps.trackmyweight.domain.calc.ReadinessLevel
 import com.kps.trackmyweight.domain.calc.ReadinessScore
@@ -50,6 +52,8 @@ data class HomeUiState(
     val phase: DietPhaseEntity? = null,
     val kcalConsumed: Float = 0f,
     val proteinConsumed: Float = 0f,
+    /** Séance non terminée, pour proposer la reprise depuis l'accueil. */
+    val activeSession: WorkoutSessionEntity? = null,
 )
 
 @HiltViewModel
@@ -59,6 +63,7 @@ class HomeViewModel @Inject constructor(
     private val weightRepo: WeightRepository,
     private val habitRepo: HabitRepository,
     private val nutritionRepo: NutritionRepository,
+    private val workoutRepo: WorkoutRepository,
 ) : ViewModel() {
 
     private val _date = MutableStateFlow(todayLocal())
@@ -116,6 +121,11 @@ class HomeViewModel @Inject constructor(
         }.combine(nutritionRepo.observeActivePhase()) { s, phase -> s.copy(phase = phase) }
             .combine(nutritionRepo.observeDailyMacros(_date.value)) { s, macros ->
                 s.copy(kcalConsumed = macros.kcal, proteinConsumed = macros.protein)
+            }
+            // Une séance en cours doit se voir dès l'accueil : c'est le premier
+            // écran ouvert, et l'oublier était précisément le bug d'origine.
+            .combine(workoutRepo.observeActiveSession()) { s, session ->
+                s.copy(activeSession = session)
             }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeUiState())
 

@@ -8,6 +8,9 @@ import androidx.room.Transaction
 import androidx.room.Update
 import androidx.room.Upsert
 import com.kps.trackmyweight.data.db.entity.CardioSessionEntity
+import com.kps.trackmyweight.data.db.entity.ExerciseMaxLoadEntity
+import com.kps.trackmyweight.data.db.entity.ExerciseSetCountRow
+import com.kps.trackmyweight.data.db.entity.MonthlyTonnageRow
 import com.kps.trackmyweight.data.db.entity.MuscleGroupVolumeWeeklyEntity
 import com.kps.trackmyweight.data.db.entity.PainLogEntity
 import com.kps.trackmyweight.data.db.entity.PerformedExerciseEntity
@@ -53,8 +56,23 @@ interface WorkoutDao {
     @Query("SELECT * FROM template_rotation_group ORDER BY dayOfWeek")
     fun observeRotationGroups(): Flow<List<TemplateRotationGroupEntity>>
 
+    @Update
+    suspend fun updateRotationGroup(g: TemplateRotationGroupEntity)
+
+    @Query("DELETE FROM template_rotation_group WHERE id = :id")
+    suspend fun deleteRotationGroup(id: Long)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun setRotationMembers(members: List<TemplateRotationMemberEntity>)
+
+    @Query("SELECT * FROM template_rotation_member WHERE rotationGroupId = :groupId ORDER BY orderInRotation")
+    suspend fun getRotationMembers(groupId: Long): List<TemplateRotationMemberEntity>
+
+    @Query("SELECT * FROM template_rotation_member ORDER BY rotationGroupId, orderInRotation")
+    fun observeAllRotationMembers(): Flow<List<TemplateRotationMemberEntity>>
+
+    @Query("DELETE FROM template_rotation_member WHERE rotationGroupId = :groupId")
+    suspend fun clearRotationMembers(groupId: Long)
 
     /**
      * Renvoie l'id du template à faire aujourd'hui pour un groupe de rotation,
@@ -115,8 +133,49 @@ interface WorkoutDao {
     @Query("SELECT * FROM workout_session WHERE deletedAt IS NULL ORDER BY date DESC, startedAt DESC LIMIT :limit")
     fun observeRecentSessions(limit: Int = 50): Flow<List<WorkoutSessionEntity>>
 
+    /**
+     * Historique : uniquement les séances effectivement terminées.
+     *
+     * Une séance sans `endedAt` est encore en cours et n'a pas sa place dans
+     * l'historique — son volume n'est pas consolidé et l'utilisateur peut encore
+     * la reprendre. Voir [observeActiveSession].
+     */
+    @Query("""
+        SELECT * FROM workout_session
+        WHERE deletedAt IS NULL AND endedAt IS NOT NULL
+        ORDER BY date DESC, startedAt DESC
+        LIMIT :limit
+    """)
+    fun observeFinishedSessions(limit: Int = 50): Flow<List<WorkoutSessionEntity>>
+
+    /**
+     * La séance en cours, s'il y en a une.
+     *
+     * Le cycle de vie se lit entièrement sur deux colonnes, sans champ de statut :
+     *  - en cours  : `endedAt IS NULL AND deletedAt IS NULL`
+     *  - terminée  : `endedAt IS NOT NULL AND deletedAt IS NULL`
+     *  - abandonnée: `deletedAt IS NOT NULL`
+     */
+    @Query("""
+        SELECT * FROM workout_session
+        WHERE deletedAt IS NULL AND endedAt IS NULL
+        ORDER BY startedAt DESC
+        LIMIT 1
+    """)
+    fun observeActiveSession(): Flow<WorkoutSessionEntity?>
+
+    @Query("""
+        SELECT * FROM workout_session
+        WHERE deletedAt IS NULL AND endedAt IS NULL
+        ORDER BY startedAt DESC
+    """)
+    suspend fun getOpenSessions(): List<WorkoutSessionEntity>
+
     @Query("SELECT * FROM workout_session WHERE id = :id AND deletedAt IS NULL LIMIT 1")
     suspend fun getSession(id: Long): WorkoutSessionEntity?
+
+    @Query("UPDATE workout_session SET totalVolumeKg = :volume WHERE id = :id")
+    suspend fun setSessionVolume(id: Long, volume: Float)
 
     @Query("UPDATE workout_session SET warmupCardioSessionId = :cardioId WHERE id = :sessionId")
     suspend fun setWarmupCardio(sessionId: Long, cardioId: Long?)
@@ -130,14 +189,86 @@ interface WorkoutDao {
     @Query("SELECT * FROM performed_exercise WHERE sessionId = :sessionId ORDER BY orderIndex")
     suspend fun getPerformedExercises(sessionId: Long): List<PerformedExerciseEntity>
 
+    @Query("SELECT * FROM performed_exercise WHERE id = :id LIMIT 1")
+    suspend fun getPerformedExercise(id: Long): PerformedExerciseEntity?
+
+    @Query("DELETE FROM performed_exercise WHERE id = :id")
+    suspend fun deletePerformedExercise(id: Long)
+
+    @Query("UPDATE performed_exercise SET orderIndex = :order WHERE id = :id")
+    suspend fun setPerformedExerciseOrder(id: Long, order: Int)
+
+    @Query("UPDATE performed_exercise SET supersetGroup = :group WHERE id = :id")
+    suspend fun setPerformedExerciseSuperset(id: Long, group: Int?)
+
     @Insert
     suspend fun insertPerformedSet(set: PerformedSetEntity): Long
 
     @Update
     suspend fun updatePerformedSet(set: PerformedSetEntity)
 
+    @Query("DELETE FROM performed_set WHERE id = :id")
+    suspend fun deletePerformedSet(id: Long)
+
+    @Query("SELECT * FROM performed_set WHERE id = :id LIMIT 1")
+    suspend fun getSet(id: Long): PerformedSetEntity?
+
     @Query("SELECT * FROM performed_set WHERE performedExerciseId = :peId ORDER BY setNumber")
     suspend fun getSetsFor(peId: Long): List<PerformedSetEntity>
+
+    /** Renumérote les séries d'un exercice après une suppression, pour éviter les trous. */
+    @Query("""
+        UPDATE performed_set
+        SET setNumber = (
+            SELECT COUNT(*) FROM performed_set inner_set
+            WHERE inner_set.performedExerciseId = performed_set.performedExerciseId
+              AND inner_set.id <= performed_set.id
+        )
+        WHERE performedExerciseId = :peId
+    """)
+    suspend fun renumberSets(peId: Long)
+
+    /** Nombre de séries loguées dans une séance, tous exercices confondus. */
+    @Query("""
+        SELECT COUNT(*) FROM performed_set ps
+        INNER JOIN performed_exercise pe ON pe.id = ps.performedExerciseId
+        WHERE pe.sessionId = :sessionId
+    """)
+    suspend fun countSetsInSession(sessionId: Long): Int
+
+    /** Instant de la dernière série loguée dans une séance, ou null si aucune. */
+    @Query("""
+        SELECT MAX(ps.createdAt) FROM performed_set ps
+        INNER JOIN performed_exercise pe ON pe.id = ps.performedExerciseId
+        WHERE pe.sessionId = :sessionId
+    """)
+    suspend fun lastSetInstantInSession(sessionId: Long): kotlinx.datetime.Instant?
+
+    /**
+     * Meilleur nombre de reps déjà réalisé à ce poids exact pour cet exercice.
+     * Alimente [com.kps.trackmyweight.domain.calc.PrDetector] : sans cette valeur,
+     * le PR « max de reps à un poids donné » ne peut jamais se déclencher.
+     */
+    @Query("""
+        SELECT MAX(ps.reps) FROM performed_set ps
+        INNER JOIN performed_exercise pe ON pe.id = ps.performedExerciseId
+        INNER JOIN workout_session ws ON ws.id = pe.sessionId
+        WHERE pe.exerciseId = :exerciseId
+          AND ws.deletedAt IS NULL
+          AND ps.type <> 'WARMUP'
+          AND ps.weightKg = :weightKg
+          AND ps.id <> :excludeSetId
+    """)
+    suspend fun maxRepsAtWeight(exerciseId: Long, weightKg: Float, excludeSetId: Long = -1L): Int?
+
+    /** Volume total (poids × reps) des séries comptabilisées d'une séance. */
+    @Query("""
+        SELECT COALESCE(SUM(ps.weightKg * ps.reps), 0) FROM performed_set ps
+        INNER JOIN performed_exercise pe ON pe.id = ps.performedExerciseId
+        WHERE pe.sessionId = :sessionId
+          AND ps.type IN ('WORKING', 'BACKOFF', 'FAILURE', 'AMRAP', 'DROP')
+    """)
+    suspend fun computeSessionVolume(sessionId: Long): Float
 
     /**
      * Renvoie la dernière séance loguée pour un exercice donné (pour auto-fill).
@@ -161,6 +292,107 @@ interface WorkoutDao {
 
     @Query("SELECT * FROM personal_record ORDER BY achievedAt DESC LIMIT :limit")
     fun observeRecentPrs(limit: Int = 20): Flow<List<PersonalRecordEntity>>
+
+    // ── Charge maximale ───────────────────────────────────
+    @Insert
+    suspend fun insertMaxLoad(entry: ExerciseMaxLoadEntity): Long
+
+    @Query("DELETE FROM exercise_max_load WHERE id = :id")
+    suspend fun deleteMaxLoad(id: Long)
+
+    /** Historique complet d'un exercice, du plus ancien au plus récent (pour la courbe). */
+    @Query("SELECT * FROM exercise_max_load WHERE exerciseId = :exerciseId ORDER BY measuredAt ASC")
+    fun observeMaxLoadHistory(exerciseId: Long): Flow<List<ExerciseMaxLoadEntity>>
+
+    /** Dernière valeur connue, quelle que soit sa provenance. */
+    @Query("SELECT * FROM exercise_max_load WHERE exerciseId = :exerciseId ORDER BY measuredAt DESC LIMIT 1")
+    suspend fun getLatestMaxLoad(exerciseId: Long): ExerciseMaxLoadEntity?
+
+    /**
+     * Meilleure valeur mesurée avant une date donnée.
+     * Sert à calculer la progression sur une période.
+     */
+    @Query("""
+        SELECT MAX(oneRmKg) FROM exercise_max_load
+        WHERE exerciseId = :exerciseId AND measuredAt <= :before
+    """)
+    suspend fun bestMaxLoadBefore(exerciseId: Long, before: kotlinx.datetime.Instant): Float?
+
+    /** Dernière valeur de chaque exercice ayant au moins une mesure. */
+    @Query("""
+        SELECT m.* FROM exercise_max_load m
+        INNER JOIN (
+            SELECT exerciseId, MAX(measuredAt) AS latest
+            FROM exercise_max_load
+            GROUP BY exerciseId
+        ) last ON last.exerciseId = m.exerciseId AND last.latest = m.measuredAt
+        GROUP BY m.exerciseId
+    """)
+    fun observeLatestMaxLoads(): Flow<List<ExerciseMaxLoadEntity>>
+
+    // ── Tonnage ───────────────────────────────────────────
+    /**
+     * Volume soulevé par mois, séances terminées uniquement.
+     *
+     * `workout_session.date` est stocké en TEXT ISO (`YYYY-MM-DD`), d'où le
+     * `substr` pour regrouper par mois sans convertisseur de date côté SQL.
+     */
+    @Query("""
+        SELECT substr(ws.date, 1, 7) AS month,
+               COALESCE(SUM(ps.weightKg * ps.reps), 0) AS volumeKg,
+               COUNT(ps.id) AS setCount,
+               COUNT(DISTINCT ws.id) AS sessionCount
+        FROM workout_session ws
+        INNER JOIN performed_exercise pe ON pe.sessionId = ws.id
+        INNER JOIN performed_set ps ON ps.performedExerciseId = pe.id
+        WHERE ws.deletedAt IS NULL
+          AND ws.endedAt IS NOT NULL
+          AND ps.type IN ('WORKING', 'BACKOFF', 'FAILURE', 'AMRAP', 'DROP')
+        GROUP BY month
+        ORDER BY month DESC
+        LIMIT :limit
+    """)
+    fun observeMonthlyTonnage(limit: Int = 12): Flow<List<MonthlyTonnageRow>>
+
+    /** Même agrégation, restreinte à un exercice. */
+    @Query("""
+        SELECT substr(ws.date, 1, 7) AS month,
+               COALESCE(SUM(ps.weightKg * ps.reps), 0) AS volumeKg,
+               COUNT(ps.id) AS setCount,
+               COUNT(DISTINCT ws.id) AS sessionCount
+        FROM workout_session ws
+        INNER JOIN performed_exercise pe ON pe.sessionId = ws.id
+        INNER JOIN performed_set ps ON ps.performedExerciseId = pe.id
+        WHERE ws.deletedAt IS NULL
+          AND ws.endedAt IS NOT NULL
+          AND pe.exerciseId = :exerciseId
+          AND ps.type IN ('WORKING', 'BACKOFF', 'FAILURE', 'AMRAP', 'DROP')
+        GROUP BY month
+        ORDER BY month DESC
+        LIMIT :limit
+    """)
+    fun observeMonthlyTonnageForExercise(exerciseId: Long, limit: Int = 12): Flow<List<MonthlyTonnageRow>>
+
+    /**
+     * Séries travaillées par exercice sur une plage de dates.
+     *
+     * L'échauffement est exclu : il ne compte pas dans le volume de travail
+     * confronté aux repères MEV/MAV/MRV.
+     */
+    @Query("""
+        SELECT pe.exerciseId AS exerciseId,
+               COUNT(ps.id) AS totalSets,
+               SUM(ps.reps) AS totalReps,
+               COALESCE(SUM(ps.weightKg * ps.reps), 0) AS totalVolumeKg
+        FROM performed_set ps
+        INNER JOIN performed_exercise pe ON pe.id = ps.performedExerciseId
+        INNER JOIN workout_session ws ON ws.id = pe.sessionId
+        WHERE ws.deletedAt IS NULL
+          AND ws.date >= :from AND ws.date <= :to
+          AND ps.type <> 'WARMUP'
+        GROUP BY pe.exerciseId
+    """)
+    suspend fun setsPerExerciseBetween(from: LocalDate, to: LocalDate): List<ExerciseSetCountRow>
 
     // ── Volume weekly ─────────────────────────────────────
     @Insert(onConflict = OnConflictStrategy.REPLACE)

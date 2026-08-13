@@ -141,6 +141,15 @@ data class BackupRoot(
 @Serializable data class BPerformedExercise(
     val exerciseName: String, val orderIndex: Int, val notes: String? = null,
     val sets: List<BPerformedSet>,
+    // Plan de la séance. Valeurs par défaut : les sauvegardes antérieures à la v6
+    // du schéma se désérialisent sans erreur, simplement sans objectif.
+    val targetSets: Int? = null,
+    val targetRepsMin: Int? = null,
+    val targetRepsMax: Int? = null,
+    val targetRpe: Float? = null,
+    val targetWeightKg: Float? = null,
+    val restSecOverride: Int? = null,
+    val supersetGroup: Int? = null,
 )
 
 @Serializable data class BPerformedSet(

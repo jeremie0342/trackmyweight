@@ -4,4 +4,8 @@
     <string name="widget_weight_description">Affiche ta dernière pesée</string>
     <string name="notif_channel_reminders">Rappels</string>
     <string name="notif_channel_reminders_desc">Pesées, mensurations, hydratation</string>
+    <string name="notif_channel_rest">Temps de repos</string>
+    <string name="notif_channel_rest_desc">Signale la fin du temps de repos entre les séries</string>
+    <string name="notif_rest_done_title">Repos terminé</string>
+    <string name="notif_rest_done_body">Série suivante.</string>
 </resources>
