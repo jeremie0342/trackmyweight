@@ -5,12 +5,17 @@ import com.kps.trackmyweight.data.db.dao.BodyDao
 import com.kps.trackmyweight.data.db.dao.HabitDao
 import com.kps.trackmyweight.data.db.dao.NutritionDao
 import com.kps.trackmyweight.data.db.dao.WorkoutDao
+import com.kps.trackmyweight.data.db.entity.CorrelationInsightEntity
 import com.kps.trackmyweight.data.db.entity.WeeklyReviewEntity
+import com.kps.trackmyweight.data.db.enums.CorrelationPeriod
 import com.kps.trackmyweight.data.db.enums.GoalPhase
 import com.kps.trackmyweight.domain.calc.AdherenceInputs
 import com.kps.trackmyweight.domain.calc.AdherencePct
 import com.kps.trackmyweight.domain.calc.CoachAdvice
 import com.kps.trackmyweight.domain.calc.CoachAdvisor
+import com.kps.trackmyweight.domain.calc.CorrelationInsight
+import com.kps.trackmyweight.domain.calc.CorrelationInsights
+import com.kps.trackmyweight.domain.calc.DailyMetric
 import com.kps.trackmyweight.domain.calc.DatedValue
 import com.kps.trackmyweight.domain.calc.NonLinearProjection
 import com.kps.trackmyweight.domain.calc.ProjectionResult
@@ -158,6 +163,103 @@ class AnalyticsRepository @Inject constructor(
     }
 
     fun observeRecentReviews(limit: Int = 12) = analyticsDao.observeRecentReviews(limit)
+
+    // ─────── Corrélations habitudes / résultats ───────
+
+    fun observeTopCorrelations(limit: Int = 10) = analyticsDao.observeTopCorrelations(limit)
+
+    /**
+     * Recalcule les corrélations entre habitudes et résultats sur la période.
+     *
+     * Les insights sont entièrement réécrits plutôt que fusionnés : une
+     * corrélation est un instantané d'une fenêtre glissante, garder les
+     * anciennes ferait cohabiter des affirmations contradictoires.
+     *
+     * Ne stocke que ce qui est interprétable — voir
+     * [CorrelationInsights.MIN_SAMPLE_SIZE].
+     */
+    suspend fun refreshCorrelations(
+        period: CorrelationPeriod = CorrelationPeriod.LAST_90D,
+    ): List<CorrelationInsight> {
+        val today = todayLocal()
+        val days = when (period) {
+            CorrelationPeriod.LAST_30D -> 30
+            CorrelationPeriod.LAST_90D -> 90
+            CorrelationPeriod.ALL -> 3650
+        }
+        val from = LocalDate.fromEpochDays(today.toEpochDays() - days)
+
+        val insights = CorrelationInsights.compute(collectDailySeries(from, today))
+
+        val now = Clock.System.now()
+        analyticsDao.clearCorrelations()
+        if (insights.isNotEmpty()) {
+            analyticsDao.insertCorrelations(
+                insights.map { insight ->
+                    CorrelationInsightEntity(
+                        metricX = insight.pair.x.key,
+                        metricY = insight.pair.y.key,
+                        pearsonR = insight.result.r,
+                        sampleSize = insight.result.sampleSize,
+                        period = period,
+                        narrativeText = insight.narrative,
+                        computedAt = now,
+                    )
+                }
+            )
+        }
+        return insights
+    }
+
+    /**
+     * Rassemble les séries quotidiennes comparables.
+     *
+     * Chaque métrique est indexée par date : c'est l'intersection des dates qui
+     * définit l'échantillon d'une paire, donc une journée sans pesée ne pénalise
+     * pas les corrélations qui ne portent pas sur le poids.
+     */
+    private suspend fun collectDailySeries(
+        from: LocalDate,
+        to: LocalDate,
+    ): Map<DailyMetric, Map<LocalDate, Float>> {
+        val logs = habitDao.observeDailyLogRange(from, to).first()
+        val sleep = habitDao.getSleepInRange(from, to)
+        val steps = habitDao.getStepsInRange(from, to)
+        val weights = bodyDao.observeWeightsInRange(from, to).first()
+        val sessions = workoutDao.observeFinishedSessions(500).first()
+            .filter { it.date >= from && it.date <= to }
+
+        return buildMap {
+            put(
+                DailyMetric.SLEEP_HOURS,
+                sleep.associate { it.date to it.durationMin / 60f },
+            )
+            put(
+                DailyMetric.STEPS,
+                steps.associate { it.date to it.adjustedCount.toFloat() },
+            )
+            put(
+                DailyMetric.READINESS,
+                logs.mapNotNull { log -> log.readinessScore?.let { log.date to it } }.toMap(),
+            )
+            put(
+                DailyMetric.RESTING_HR,
+                logs.mapNotNull { log -> log.restingHrBpm?.let { log.date to it.toFloat() } }.toMap(),
+            )
+            put(
+                DailyMetric.BODY_WEIGHT,
+                weights.associate { it.date to it.weightKg },
+            )
+            // Plusieurs séances le même jour se cumulent : c'est la charge du
+            // jour qui est comparable, pas celle d'une séance isolée.
+            put(
+                DailyMetric.SESSION_VOLUME,
+                sessions.groupBy { it.date }
+                    .mapValues { (_, daily) -> daily.sumOf { it.totalVolumeKg.toDouble() }.toFloat() },
+            )
+        }
+    }
+
 
     private suspend fun averagedNutrition(
         weekStart: LocalDate,

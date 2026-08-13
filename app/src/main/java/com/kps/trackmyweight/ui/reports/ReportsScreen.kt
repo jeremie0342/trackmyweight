@@ -35,6 +35,8 @@ import com.kps.trackmyweight.data.repository.NutritionRepository
 import com.kps.trackmyweight.data.repository.WeightRepository
 import com.kps.trackmyweight.data.repository.WeeklyReport
 import com.kps.trackmyweight.domain.calc.CoachAdvice
+import com.kps.trackmyweight.domain.calc.CorrelationInsight
+import com.kps.trackmyweight.domain.calc.CorrelationStrength
 import com.kps.trackmyweight.domain.calc.CoachAdviceKind
 import com.kps.trackmyweight.domain.calc.NutritionCalculator
 import com.kps.trackmyweight.ui.common.BackHeader
@@ -52,6 +54,8 @@ import kotlinx.datetime.LocalDate
 
 data class ReportsUiState(
     val report: WeeklyReport? = null,
+    /** Liens observés entre habitudes et résultats, du plus marqué au moins marqué. */
+    val correlations: List<CorrelationInsight> = emptyList(),
     val isLoading: Boolean = false,
 )
 
@@ -76,7 +80,13 @@ class ReportsViewModel @Inject constructor(
             val goal = goalRepo.observeActive().first()
             val phase = nutritionRepo.observeActivePhase().first()
             if (goal == null || phase == null) {
-                _state.value = ReportsUiState(isLoading = false)
+                // Sans objectif ni phase, pas de rapport hebdo — mais les
+                // corrélations, elles, ne dependent que des donnees quotidiennes.
+                _state.value = ReportsUiState(
+                    correlations = runCatching { analyticsRepo.refreshCorrelations() }
+                        .getOrDefault(emptyList()),
+                    isLoading = false,
+                )
                 return@launch
             }
             val weeksInPhase = ((today.toEpochDays() - phase.startDate.toEpochDays()) / 7).toInt().coerceAtLeast(1)
@@ -89,7 +99,15 @@ class ReportsViewModel @Inject constructor(
                 kcalTargetG = phase.targetKcal,
                 weeksInPhase = weeksInPhase,
             )
-            _state.value = ReportsUiState(report = report, isLoading = false)
+            // Les corrélations sont recalculées avec le rapport : elles portent
+            // sur une fenêtre glissante, les rafraîchir à part les désynchroniserait.
+            val correlations = runCatching { analyticsRepo.refreshCorrelations() }
+                .getOrDefault(emptyList())
+            _state.value = ReportsUiState(
+                report = report,
+                correlations = correlations,
+                isLoading = false,
+            )
         }
     }
 
@@ -245,6 +263,15 @@ private fun CoachAdvicesCard(
         shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (state.correlations.isNotEmpty()) {
+                Text(
+                    "Ce qui va ensemble",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                state.correlations.forEach { CorrelationCard(it) }
+            }
+
             Text("Coach", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             advices.forEach { a ->
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -255,6 +282,46 @@ private fun CoachAdvicesCard(
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * Un lien observé entre deux métriques.
+ *
+ * L'intensité est rendue par une barre plutôt que par le coefficient seul :
+ * « r = 0,62 » ne parle pas, une barre à mi-course si.
+ */
+@Composable
+private fun CorrelationCard(insight: CorrelationInsight) {
+    val strengthColor = when (insight.result.strength) {
+        CorrelationStrength.STRONG -> MaterialTheme.colorScheme.primary
+        CorrelationStrength.MODERATE -> MaterialTheme.colorScheme.primary
+        CorrelationStrength.WEAK -> MaterialTheme.colorScheme.onSurfaceVariant
+        CorrelationStrength.NEGLIGIBLE -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                "${insight.pair.x.labelFr} et ${insight.pair.y.labelFr}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
+            )
+            LinearProgressIndicator(
+                progress = { kotlin.math.abs(insight.result.r).coerceIn(0f, 1f) },
+                modifier = Modifier.fillMaxWidth(),
+                color = strengthColor,
+                trackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            )
+            Text(
+                insight.narrative,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
