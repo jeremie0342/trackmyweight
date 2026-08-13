@@ -35,8 +35,24 @@ class HabitRepositoryTest {
 
     @Test fun seedIfEmpty_populates_habits() = runTest {
         repo.seedIfEmpty()
-        val habits = repo.observeHabits().first()
-        assertEquals(HabitSeed.items.size, habits.size)
+        assertEquals(
+            "toutes les habitudes du seed doivent être créées",
+            HabitSeed.items.size, repo.observeAllHabits().first().size,
+        )
+    }
+
+    @Test fun optional_habits_are_seeded_inactive() = runTest {
+        repo.seedIfEmpty()
+        // `observeHabits` ne renvoie que les habitudes actives. La créatine est
+        // seedée désactivée : c'est un complément, pas une habitude universelle.
+        // Confondre les deux ensembles faisait échouer ce test (7 attendus, 6 reçus).
+        val active = repo.observeHabits().first()
+        val expectedActive = HabitSeed.items.count { it.isActive }
+        assertEquals(expectedActive, active.size)
+        assertTrue(
+            "la créatine doit rester opt-in",
+            active.none { it.key == "creatine" },
+        )
     }
 
     @Test fun toggle_completion_persists() = runTest {

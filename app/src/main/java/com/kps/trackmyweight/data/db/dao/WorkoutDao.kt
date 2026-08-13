@@ -271,14 +271,24 @@ interface WorkoutDao {
     suspend fun computeSessionVolume(sessionId: Long): Float
 
     /**
-     * Renvoie la dernière séance loguée pour un exercice donné (pour auto-fill).
+     * Dernières séries de travail loguées pour un exercice, de la plus récente
+     * à la plus ancienne. Alimente le pré-remplissage « dernière séance ».
+     *
+     * L'ordre était `ws.date DESC, ps.setNumber ASC`, ce qui posait deux
+     * problèmes : à l'intérieur d'une séance il renvoyait la PREMIÈRE série au
+     * lieu de la dernière, et deux séances le même jour se départageaient de
+     * façon indéterminée. `ps.createdAt DESC` est sans ambiguïté.
+     *
+     * L'échauffement est exclu : pré-remplir avec la barre à vide n'aide pas.
      */
     @Query("""
         SELECT ps.* FROM performed_set ps
         INNER JOIN performed_exercise pe ON pe.id = ps.performedExerciseId
         INNER JOIN workout_session ws ON ws.id = pe.sessionId
-        WHERE pe.exerciseId = :exerciseId AND ws.deletedAt IS NULL
-        ORDER BY ws.date DESC, ps.setNumber ASC
+        WHERE pe.exerciseId = :exerciseId
+          AND ws.deletedAt IS NULL
+          AND ps.type <> 'WARMUP'
+        ORDER BY ps.createdAt DESC
         LIMIT :limit
     """)
     suspend fun getLastSetsForExercise(exerciseId: Long, limit: Int = 10): List<PerformedSetEntity>
