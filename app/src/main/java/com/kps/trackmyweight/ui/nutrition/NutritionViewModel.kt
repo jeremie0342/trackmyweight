@@ -15,6 +15,9 @@ import com.kps.trackmyweight.data.repository.WeightRepository
 import com.kps.trackmyweight.domain.calc.DistributionQuality
 import com.kps.trackmyweight.domain.calc.DistributionVerdict
 import com.kps.trackmyweight.domain.calc.MealProtein
+import com.kps.trackmyweight.domain.calc.CalorieAdapter
+import com.kps.trackmyweight.domain.calc.CalorieAdjustmentAdvice
+import com.kps.trackmyweight.domain.calc.DatedValue
 import com.kps.trackmyweight.domain.calc.NutritionCalculator
 import com.kps.trackmyweight.domain.calc.ProteinDistribution
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -46,6 +49,10 @@ data class NutritionUiState(
     val fiberConsumed: Float = 0f,
     val distribution: DistributionVerdict? = null,
     val favorites: List<FavoriteMealEntity> = emptyList(),
+    /** Ajustement calorique suggéré par la tendance réelle du poids. Null si rien à changer. */
+    val calorieAdvice: CalorieAdjustmentAdvice? = null,
+    /** Rythme hebdomadaire observé, affiché pour justifier le conseil. */
+    val weeklyRateKg: Float? = null,
     val isLoading: Boolean = true,
 )
 
@@ -89,11 +96,33 @@ class NutritionViewModel @Inject constructor(
                 NutritionCalculator.tdee(bmr, profile.activityLevel)
             } else null
         }.getOrNull()
+        // Adaptation calorique : on ne conseille qu'a partir d'assez de points.
+        // Ajuster les calories sur deux pesees reviendrait a reagir au bruit
+        // (variations d'eau, de transit) plutot qu'a une tendance.
+        val weights = weightRepo.observeRecent(WEIGHT_WINDOW_DAYS).first()
+        val weeklyRate = if (weights.size >= MIN_WEIGH_INS_FOR_TREND) {
+            CalorieAdapter.weeklyRateFrom(weights.map { DatedValue(it.date, it.weightKg) })
+        } else {
+            null
+        }
+        val goalPhase = goalRepo.observeActive().first()?.phase
+        val advice = if (weeklyRate != null && goalPhase != null && phase != null) {
+            CalorieAdapter.advise(
+                phase = goalPhase,
+                currentTargetKcal = phase.targetKcal,
+                weeklyRateActualKg = weeklyRate,
+            )
+        } else {
+            null
+        }
+
         NutritionUiState(
             date = date,
             meals = meals,
             phase = phase,
             tdeeEstimate = tdee,
+            calorieAdvice = advice,
+            weeklyRateKg = weeklyRate,
             kcalConsumed = kcal,
             proteinConsumed = protein,
             carbsConsumed = carbs,
@@ -131,6 +160,20 @@ class NutritionViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Applique l'ajustement suggéré à la phase active.
+     *
+     * `updateActivePhase` clôture la phase courante et en ouvre une nouvelle :
+     * l'historique des cibles reste donc lisible, on n'écrase pas le passé.
+     */
+    fun applyCalorieAdvice() {
+        val advice = state.value.calorieAdvice ?: return
+        viewModelScope.launch {
+            runCatching { nutritionRepo.updateActivePhase(advice.newTargetKcal) }
+            _refreshTrigger.value = _refreshTrigger.value + 1
+        }
+    }
+
     fun deleteEntry(entryId: Long) {
         viewModelScope.launch {
             nutritionRepo.deleteEntry(entryId)
@@ -154,3 +197,6 @@ class NutritionViewModel @Inject constructor(
     private fun todayLocal(): LocalDate =
         Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
 }
+
+private const val WEIGHT_WINDOW_DAYS = 28
+private const val MIN_WEIGH_INS_FOR_TREND = 6

@@ -50,6 +50,7 @@ import com.kps.trackmyweight.data.db.enums.MealType
 import com.kps.trackmyweight.data.db.enums.PortionMode
 import com.kps.trackmyweight.data.repository.MealWithEntries
 import com.kps.trackmyweight.domain.calc.DistributionQuality
+import com.kps.trackmyweight.domain.calc.CalorieAdjustmentAdvice
 import com.kps.trackmyweight.ui.common.labelFr
 import com.kps.trackmyweight.ui.common.ChoiceTile
 import com.kps.trackmyweight.ui.common.NumericField
@@ -95,6 +96,14 @@ fun NutritionScreen(
 
             MacrosCard(state)
             state.distribution?.let { DistributionCard(it) }
+            state.calorieAdvice?.let { advice ->
+                CalorieAdviceCard(
+                    advice = advice,
+                    weeklyRateKg = state.weeklyRateKg,
+                    currentTargetKcal = state.phase?.targetKcal,
+                    onApply = vm::applyCalorieAdvice,
+                )
+            }
             ProteinValueShortcut(onClick = onOpenProteinValue)
 
             listOf(
@@ -599,6 +608,76 @@ private fun ProteinValueShortcut(onClick: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+    }
+}
+
+/**
+ * Ajustement calorique deduit de la tendance reelle du poids.
+ *
+ * CoachAdvisor disait deja "retire 100 kcal", mais sans calculer la nouvelle
+ * cible ni permettre de l'appliquer. Ici le chiffre est explicite et
+ * l'application se fait en un tap.
+ */
+@Composable
+private fun CalorieAdviceCard(
+    advice: CalorieAdjustmentAdvice,
+    weeklyRateKg: Float?,
+    currentTargetKcal: Int?,
+    onApply: () -> Unit,
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(
+                "Adaptation calorique",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            weeklyRateKg?.let {
+                Text(
+                    "Tendance observee : %+.2f kg par semaine".format(it),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Text(advice.reason, style = MaterialTheme.typography.bodyMedium)
+
+            Row(verticalAlignment = Alignment.Bottom) {
+                currentTargetKcal?.let {
+                    Text(
+                        "$it",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        "  ->  ",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Text(
+                    "${advice.newTargetKcal} kcal",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+
+            if (advice.stepsSuggestionDaily > 0) {
+                Text(
+                    "Alternative sans toucher aux calories : +${advice.stepsSuggestionDaily} pas par jour.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            TextButton(onClick = onApply) {
+                Text("Appliquer ${advice.deltaKcal.let { if (it > 0) "+$it" else "$it" }} kcal")
+            }
         }
     }
 }
