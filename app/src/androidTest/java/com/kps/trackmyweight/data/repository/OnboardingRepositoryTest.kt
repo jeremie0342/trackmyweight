@@ -32,6 +32,7 @@ class OnboardingRepositoryTest {
     private lateinit var userRepo: UserProfileRepository
     private lateinit var goalRepo: GoalRepository
     private lateinit var gymRepo: GymRepository
+    private lateinit var weightRepo: WeightRepository
     private lateinit var onboardingRepo: OnboardingRepository
 
     @Before
@@ -43,7 +44,8 @@ class OnboardingRepositoryTest {
         userRepo = UserProfileRepository(db.userDao())
         goalRepo = GoalRepository(db.userDao(), db)
         gymRepo = GymRepository(db.userDao(), db)
-        onboardingRepo = OnboardingRepository(db, userRepo, goalRepo, gymRepo, db.nutritionDao())
+        weightRepo = WeightRepository(db.bodyDao())
+        onboardingRepo = OnboardingRepository(db, userRepo, goalRepo, gymRepo, weightRepo, db.nutritionDao())
     }
 
     @After fun tearDown() = db.close()
@@ -95,6 +97,7 @@ class OnboardingRepositoryTest {
             profile = profile(now),
             goal = goal(now, targetKg = 75f),
             targets = targets,
+            currentWeightKg = 82.5f,
             gymName = "TestGym",
             equipmentIds = someIds,
         )
@@ -110,6 +113,12 @@ class OnboardingRepositoryTest {
         assertNotNull(activePhase)
         assertEquals(2700, activePhase!!.targetKcal)
         assertEquals(176, activePhase.targetProteinG)
+
+        // La pesée initiale doit être enregistrée : le reste de l'app (cardio,
+        // coach, projections) a besoin d'un poids de référence dès le départ.
+        val initialWeight = weightRepo.observeLast().first()
+        assertNotNull(initialWeight)
+        assertEquals(82.5f, initialWeight!!.weightKg, 0.01f)
     }
 
     @Test
@@ -124,6 +133,7 @@ class OnboardingRepositoryTest {
             profile = profile(now),
             goal = goal(now, targetKg = 84f),
             targets = targets,
+            currentWeightKg = 84f,
             gymName = null,
             equipmentIds = emptySet(),
         )
