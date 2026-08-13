@@ -51,7 +51,8 @@ Official captures will be added under `docs/screenshots/`. See [docs/README.md](
 - Auto **stagnation detection** (14 days without progress)
 
 ### Workout journal
-- Library of **~60 exercises** with primary/secondary muscles + equipment
+- Library of **200 exercises** with primary/secondary muscles + equipment, a short
+  French coaching cue, and a two-frame **animated demonstration** (start → end position)
 - Auto-filtering by **your gym's equipment** (multi-gym supported)
 - Session templates with **rotation** (e.g. Monday arms/legs alternating)
 - Active session: **auto-fill** last performance, adaptive rest timer (compound 3min / isolation 90s)
@@ -190,6 +191,8 @@ This project stands on the shoulders of giants:
 - **JetBrains** (Kotlin, kotlinx-coroutines, kotlinx-datetime, kotlinx-serialization)
 - **Coil** for image loading
 - **FAO West Africa food composition tables** for local nutritional values
+- **[free-exercise-db](https://github.com/yuhonas/free-exercise-db)** for the exercise
+  reference data and demonstration imagery (The Unlicense — public domain)
 - **Renaissance Periodization / Dr. Mike Israetel** for MEV/MAV/MRV landmarks
 - **Contributor Covenant** for the Code of Conduct
 
