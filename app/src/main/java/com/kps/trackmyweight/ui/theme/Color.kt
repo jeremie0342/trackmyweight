@@ -11,9 +11,21 @@ val InkTextPrimary = Color(0xFFF5F5F7)
 val InkTextSecondary = Color(0xFF8E8E93)
 val InkTextTertiary = Color(0xFF636367)
 
-// Accent (fallback quand Material You dynamic non dispo)
+// Ink — déclinaison claire (mêmes rôles, valeurs inversées)
+val InkLightBackground = Color(0xFFFAFAFA)
+val InkLightSurface1 = Color(0xFFFFFFFF)
+val InkLightSurface2 = Color(0xFFF4F4F6)
+val InkLightSurface3 = Color(0xFFEDEDF0)
+val InkLightTextPrimary = Color(0xFF0A0A0B)
+val InkLightTextSecondary = Color(0xFF6B6B70)
+val InkLightTextTertiary = Color(0xFF9A9AA0)
+
+// Accent
 val AccentTeal = Color(0xFF5EEAD4)
 val AccentTealMuted = Color(0xFF2DD4BF)
+
+/** Teal assombri : le teal clair n'a pas un contraste suffisant sur fond blanc. */
+val AccentTealDeep = Color(0xFF0F766E)
 
 // Sémantique
 val SemanticPositive = Color(0xFF4ADE80)

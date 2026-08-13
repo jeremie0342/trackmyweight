@@ -37,15 +37,37 @@ private val DarkScheme = darkColorScheme(
 )
 
 private val LightScheme = lightColorScheme(
-    primary = AccentTealMuted,
-    background = Color(0xFFFAFAFA),
-    surface = Color.White,
+    primary = AccentTealDeep,
+    onPrimary = Color.White,
+    primaryContainer = AccentTeal,
+    onPrimaryContainer = InkLightTextPrimary,
+    background = InkLightBackground,
+    onBackground = InkLightTextPrimary,
+    surface = InkLightSurface1,
+    onSurface = InkLightTextPrimary,
+    surfaceVariant = InkLightSurface2,
+    onSurfaceVariant = InkLightTextSecondary,
+    surfaceContainer = InkLightSurface2,
+    surfaceContainerHigh = InkLightSurface3,
+    surfaceContainerHighest = InkLightSurface3,
+    outline = InkLightTextTertiary,
+    outlineVariant = InkLightSurface3,
+    error = Color(0xFFDC2626),
+    onError = Color.White,
 )
 
+/**
+ * Thème de l'app.
+ *
+ * `dynamicColor` est volontairement à `false` : Material You écrase intégralement
+ * la palette Ink (voir [DarkScheme]) sur Android 12+, ce qui rendait le design
+ * system invisible sur la quasi-totalité du parc. Ne repasser à `true` que si on
+ * décide explicitement d'abandonner la palette maison.
+ */
 @Composable
 fun TrackMyWeightTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
