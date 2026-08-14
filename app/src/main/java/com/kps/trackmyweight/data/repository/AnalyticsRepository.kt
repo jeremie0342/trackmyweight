@@ -18,6 +18,7 @@ import com.kps.trackmyweight.domain.calc.CorrelationInsights
 import com.kps.trackmyweight.domain.calc.DailyMetric
 import com.kps.trackmyweight.domain.calc.DatedValue
 import com.kps.trackmyweight.domain.calc.NonLinearProjection
+import com.kps.trackmyweight.domain.calc.PlannedWeek
 import com.kps.trackmyweight.domain.calc.ProjectionResult
 import com.kps.trackmyweight.domain.calc.StagnationDetector
 import com.kps.trackmyweight.domain.calc.WeeklyReviewGenerator
@@ -45,6 +46,33 @@ class AnalyticsRepository @Inject constructor(
     private val habitDao: HabitDao,
     private val analyticsDao: AnalyticsMetaDao,
 ) {
+
+    private companion object {
+        /**
+         * Rien dans le modèle ne permet de planifier du cardio : ni jour de
+         * programme, ni habitude dédiée. Deux séances restent une hypothèse,
+         * pas une lecture du planning — contrairement à l'objectif de muscu.
+         */
+        const val DEFAULT_CARDIO_PER_WEEK = 2
+    }
+
+    /**
+     * Objectif de séances de la semaine, lu depuis le planning de l'utilisateur.
+     *
+     * Même ordre de priorité que `todaysPlan` : le programme actif prime sur la
+     * rotation. Sans planning du tout, on retombe sur la valeur par défaut —
+     * voir [PlannedWeek].
+     */
+    private suspend fun plannedWorkoutsPerWeek(): Int {
+        val program = workoutDao.observeActiveProgram().first()
+        val programDays = program?.let { workoutDao.getProgramDays(it.id) }.orEmpty()
+        val rotations = workoutDao.observeRotationGroups().first()
+        return PlannedWeek.trainingDaysPerWeek(programDays, rotations)
+            // Un plan entierement en repos donnerait 0, qui ferait une division
+            // par zero dans le calcul d'adherence.
+            ?.takeIf { it > 0 }
+            ?: PlannedWeek.DEFAULT_TRAINING_DAYS
+    }
 
     /**
      * Génère le rapport pour la semaine passée (7 derniers jours par rapport à `today`).
@@ -93,8 +121,11 @@ class AnalyticsRepository @Inject constructor(
         }
 
         val adherence = AdherencePct.compute(AdherenceInputs(
-            workoutsDone = sessions.size, workoutsTarget = 5,   // TODO: derive from user's plan
-            cardioDone = cardio.size, cardioTarget = 2,
+            workoutsDone = sessions.size, workoutsTarget = plannedWorkoutsPerWeek(),
+            // Pas d'equivalent pour le cardio : rien dans le modele ne permet
+            // d'en planifier, ni programme ni habitude dediee. La valeur reste
+            // donc arbitraire, mais au moins elle est nommee.
+            cardioDone = cardio.size, cardioTarget = DEFAULT_CARDIO_PER_WEEK,
             weighInsCount = weightsRecent.size, daysInWindow = daysInWindow,
             habitsDone = habitsDone, habitsPossible = habitsPossible.coerceAtLeast(1),
             daysWithGoodSleep = sleepEntries.count { it.durationMin >= 420 },
