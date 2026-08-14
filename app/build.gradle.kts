@@ -154,6 +154,13 @@ dependencies {
 
     // Unit tests
     testImplementation(libs.junit)
+    // Robolectric fait tourner les tests Room sur la JVM : ils n'ont besoin que
+    // d'une base en memoire, pas d'un appareil. Seuls restent sur emulateur les
+    // tests qui touchent l'Android Keystore ou l'UI Compose.
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.junit)
+    testImplementation(libs.room.testing)
     testImplementation(libs.turbine)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)

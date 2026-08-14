@@ -1,8 +1,9 @@
 package com.kps.trackmyweight.data.repository
 
+import android.content.Context
 import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.core.app.ApplicationProvider
 import com.kps.trackmyweight.data.db.TrackMyWeightDatabase
 import com.kps.trackmyweight.data.seed.HabitSeed
 import kotlinx.coroutines.flow.first
@@ -24,7 +25,7 @@ class HabitRepositoryTest {
     private lateinit var repo: HabitRepository
 
     @Before fun setup() {
-        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
+        val ctx = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(ctx, TrackMyWeightDatabase::class.java)
             .allowMainThreadQueries()
             .build()

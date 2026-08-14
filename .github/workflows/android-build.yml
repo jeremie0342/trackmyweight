@@ -217,6 +217,15 @@ jobs:
             chmod +x ./gradlew
           fi
 
+      # Images ATD (Automated Test Device) : variantes allegees concues pour la
+      # CI. Moins de services systeme demarrent, donc la fenetre pendant laquelle
+      # l'appareil repond a adb sans que le framework soit pret se reduit — c'est
+      # exactement la course qui faisait echouer le job une fois sur quatre
+      # (ServiceNotFoundException: No service published for: input, 10 s apres le
+      # lancement, tres loin du timeout de 600 s).
+      #
+      # La cle de cache inclut la cible : un AVD google_apis en cache restaure
+      # par-dessus une config aosp_atd donnerait un appareil incoherent.
       - name: AVD cache
         id: avd-cache
         uses: actions/cache@v4
@@ -224,7 +233,7 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-${{ matrix.api-level }}
+          key: avd-${{ matrix.api-level }}-aosp_atd
 
       - name: Create AVD & warm up
         if: steps.avd-cache.outputs.cache-hit != 'true'
@@ -232,7 +241,7 @@ jobs:
         with:
           api-level: ${{ matrix.api-level }}
           arch: x86_64
-          target: google_apis
+          target: aosp_atd
           force-avd-creation: false
           ram-size: 3072M
           heap-size: 384M
@@ -241,13 +250,35 @@ jobs:
           disable-animations: true
           script: echo "AVD ready"
 
+      # continue-on-error sur cette etape seulement : on veut pouvoir enchainer
+      # sur la seconde tentative. L'echec reste visible via son outcome.
       - name: Run instrumented tests
+        id: instrumented
+        continue-on-error: true
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api-level }}
           arch: x86_64
-          target: google_apis
+          target: aosp_atd
           force-avd-creation: false
+          ram-size: 3072M
+          heap-size: 384M
+          disk-size: 6144M
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: ./gradlew :app:connectedDebugAndroidTest --no-daemon --stacktrace
+
+      # Une course au demarrage rate rarement deux fois de suite. Une seconde
+      # tentative distingue donc le hasard d'un vrai echec de test : si celle-ci
+      # tombe aussi, le probleme n'est pas l'emulateur.
+      - name: Retry instrumented tests
+        if: steps.instrumented.outcome == 'failure'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          arch: x86_64
+          target: aosp_atd
+          force-avd-creation: true
           ram-size: 3072M
           heap-size: 384M
           disk-size: 6144M

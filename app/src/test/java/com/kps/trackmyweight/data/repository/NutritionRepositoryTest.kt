@@ -1,8 +1,9 @@
 package com.kps.trackmyweight.data.repository
 
+import android.content.Context
 import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.core.app.ApplicationProvider
 import com.kps.trackmyweight.data.db.TrackMyWeightDatabase
 import com.kps.trackmyweight.data.db.enums.MealType
 import com.kps.trackmyweight.data.db.enums.PortionMode
@@ -24,7 +25,7 @@ class NutritionRepositoryTest {
     private lateinit var repo: NutritionRepository
 
     @Before fun setup() {
-        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
+        val ctx = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(ctx, TrackMyWeightDatabase::class.java)
             .allowMainThreadQueries()
             .build()

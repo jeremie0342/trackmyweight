@@ -1,8 +1,9 @@
 package com.kps.trackmyweight.data.repository
 
+import android.content.Context
 import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.core.app.ApplicationProvider
 import com.kps.trackmyweight.data.db.TrackMyWeightDatabase
 import com.kps.trackmyweight.data.db.entity.ExerciseEntity
 import com.kps.trackmyweight.data.db.enums.ExerciseForce
@@ -31,7 +32,7 @@ class WorkoutRepositoryTest {
     private lateinit var repo: WorkoutRepository
 
     @Before fun setup() {
-        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
+        val ctx = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(ctx, TrackMyWeightDatabase::class.java)
             .allowMainThreadQueries()
             .build()

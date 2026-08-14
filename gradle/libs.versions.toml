@@ -25,6 +25,8 @@ cameraX = "1.4.1"
 datastore = "1.1.1"
 splashscreen = "1.0.1"
 junit = "4.13.2"
+robolectric = "4.14.1"
+androidxTestCore = "1.6.1"
 androidxJunit = "1.2.1"
 espresso = "3.6.1"
 turbine = "1.2.0"
@@ -84,6 +86,8 @@ guava = { group = "com.google.guava", name = "guava", version = "33.3.1-android"
 concurrent-futures = { group = "androidx.concurrent", name = "concurrent-futures-ktx", version = "1.2.0" }
 
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+androidx-test-core = { group = "androidx.test", name = "core", version.ref = "androidxTestCore" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxJunit" }
 espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
