@@ -22,6 +22,13 @@ jobs:
     name: Assemble debug APK
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Consommees par le job `release`, qui ne recompile pas : il recupere l'APK
+    # en artifact.
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      date: ${{ steps.version.outputs.date }}
+      build_num: ${{ steps.version.outputs.build_num }}
+      apk_name: ${{ steps.rename.outputs.apk_name }}
 
     steps:
       - name: Checkout
@@ -102,45 +109,6 @@ jobs:
           name: apk-${{ steps.version.outputs.tag }}
           path: ${{ steps.rename.outputs.apk_path }}
           retention-days: 30
-
-      - name: Publish GitHub Release
-        if: github.ref == 'refs/heads/main' || github.event.inputs.publish_release == 'true'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          name: TrackMyWeight ${{ steps.version.outputs.tag }}
-          body: |
-            Debug build automatique.
-
-            - Commit : ${{ github.sha }}
-            - Date : ${{ steps.version.outputs.date }}
-            - Build #${{ steps.version.outputs.build_num }}
-
-            **Installation** : télécharge l'APK et installe depuis ton téléphone (autoriser les sources inconnues pour ton navigateur si besoin).
-          files: ${{ steps.rename.outputs.apk_path }}
-          prerelease: true
-          make_latest: true
-
-      # Chaque build publie une prerelease : sans retention, elles s'accumulent
-      # indefiniment (67 au moment d'ajouter cette etape, pour 10 reellement utiles).
-      # On conserve les KEEP plus recentes et on supprime les autres avec leur tag.
-      # continue-on-error : le menage ne doit jamais faire echouer une release.
-      - name: Prune old prereleases
-        if: github.ref == 'refs/heads/main' || github.event.inputs.publish_release == 'true'
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          KEEP: 10
-        run: |
-          set -u
-          gh release list --repo "$GITHUB_REPOSITORY" --limit 200 --json tagName,createdAt,isPrerelease > releases.json
-          jq -r --argjson keep "$KEEP" 'map(select(.isPrerelease)) | sort_by(.createdAt) | reverse | .[$keep:][] | .tagName' releases.json > to-delete.txt
-          echo "A supprimer : $(wc -l < to-delete.txt) prerelease(s), on garde les $KEEP plus recentes."
-          while read -r tag; do
-            [ -z "$tag" ] && continue
-            echo "  suppression $tag"
-            gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
-          done < to-delete.txt
 
   unit-tests:
     name: JVM unit tests
@@ -298,3 +266,68 @@ jobs:
           path: |
             app/build/reports/androidTests/
             app/build/outputs/androidTest-results/
+
+  # La publication est un job a part, qui depend des trois autres.
+  #
+  # Auparavant elle vivait dans `build`, sans aucun `needs` : l'APK partait en
+  # release meme quand les tests echouaient, puisque les jobs sont paralleles et
+  # que `build` ne consultait jamais leur resultat. Retirer continue-on-error du
+  # job de tests rendait le run rouge, mais ne fermait pas cette porte.
+  #
+  # Les trois jobs restent paralleles : la release n'attend que le plus lent,
+  # pas la somme. Mettre `needs` directement sur `build` aurait serialise le
+  # build derriere les tests, ce qui aurait coute bien plus cher.
+  #
+  # Si les tests instrumentes sont sautes (push sur dev), ce job l'est aussi —
+  # ce qui est le comportement voulu, on ne publie pas depuis dev.
+  release:
+    name: Publish release
+    needs: [build, unit-tests, instrumented-tests]
+    if: github.ref == 'refs/heads/main' || github.event.inputs.publish_release == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: apk-${{ needs.build.outputs.tag }}
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.build.outputs.tag }}
+          name: TrackMyWeight ${{ needs.build.outputs.tag }}
+          body: |
+            Debug build automatique, publie apres passage des tests.
+
+            - Commit : ${{ github.sha }}
+            - Date : ${{ needs.build.outputs.date }}
+            - Build #${{ needs.build.outputs.build_num }}
+
+            **Installation** : télécharge l'APK et installe depuis ton téléphone (autoriser les sources inconnues pour ton navigateur si besoin).
+          files: ${{ needs.build.outputs.apk_name }}
+          prerelease: true
+          make_latest: true
+
+      # Chaque build publie une prerelease : sans retention, elles s'accumulent
+      # indefiniment (67 au moment d'ajouter cette etape, pour 10 reellement utiles).
+      # On conserve les KEEP plus recentes et on supprime les autres avec leur tag.
+      # continue-on-error : le menage ne doit jamais faire echouer une release.
+      - name: Prune old prereleases
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          KEEP: 10
+        run: |
+          set -u
+          gh release list --repo "$GITHUB_REPOSITORY" --limit 200 --json tagName,createdAt,isPrerelease > releases.json
+          jq -r --argjson keep "$KEEP" 'map(select(.isPrerelease)) | sort_by(.createdAt) | reverse | .[$keep:][] | .tagName' releases.json > to-delete.txt
+          echo "A supprimer : $(wc -l < to-delete.txt) prerelease(s), on garde les $KEEP plus recentes."
+          while read -r tag; do
+            [ -z "$tag" ] && continue
+            echo "  suppression $tag"
+            gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
+          done < to-delete.txt
