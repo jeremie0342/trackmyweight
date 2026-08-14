@@ -13,25 +13,34 @@
 # retrouver un schema ancien qu'on aurait oublie de commiter.
 name: Extract Room schemas
 
+# Declenche par push sur une branche dediee plutot que manuellement :
+# workflow_dispatch exige que le fichier soit sur la branche par defaut, ce qui
+# obligerait a passer par main — donc a publier une release — pour un simple
+# utilitaire. La matrice donne les deux schemas en un seul run.
 on:
-  workflow_dispatch:
-    inputs:
-      ref:
-        description: "Revision a compiler (sha, tag ou branche)"
-        required: true
-        default: "main"
+  push:
+    branches: [chore/extract-schemas]
 
 jobs:
   extract:
-    name: Extract schemas from ${{ github.event.inputs.ref }}
+    name: Extract schemas from ${{ matrix.label }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Derniere revision ou la base etait en v5, avant les migrations.
+          - { label: v5, ref: c779a16 }
+          # Etat courant : v9, a commiter pour que les futures migrations
+          # soient testables sans repasser par ici.
+          - { label: v9, ref: chore/extract-schemas }
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.ref }}
+          ref: ${{ matrix.ref }}
           fetch-depth: 0
 
       - name: Set up JDK 17
@@ -69,6 +78,6 @@ jobs:
       - name: Upload schemas
         uses: actions/upload-artifact@v4
         with:
-          name: room-schemas-${{ github.event.inputs.ref }}
+          name: room-schemas-${{ matrix.label }}
           path: app/schemas/**/*.json
           if-no-files-found: error
