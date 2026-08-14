@@ -9,8 +9,8 @@
 # revision demandee. C'est la seule source fiable : le reecrire a la main
 # reviendrait a tester mes migrations contre ma propre relecture du passe.
 #
-# Manuel uniquement. Une fois les JSON commites, il ne sert plus qu'a
-# retrouver un schema ancien qu'on aurait oublie de commiter.
+# Une fois les JSON commites, il ne sert plus qu'a retrouver un schema ancien
+# qu'on aurait oublie de commiter.
 name: Extract Room schemas
 
 # Declenche par push sur une branche dediee plutot que manuellement :
@@ -31,7 +31,7 @@ jobs:
       matrix:
         include:
           # Derniere revision ou la base etait en v5, avant les migrations.
-          - { label: v5, ref: c779a16 }
+          - { label: v5, ref: c779a16274d938ece626a1c8936f427fdb04f088 }
           # Etat courant : v9, a commiter pour que les futures migrations
           # soient testables sans repasser par ici.
           - { label: v9, ref: chore/extract-schemas }
@@ -49,8 +49,15 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Cache Gradle
+      # Cache desactive volontairement. Room ecrit le JSON de schema en effet de
+      # bord de KSP, hors des sorties declarees de la tache : servie depuis le
+      # cache, `kspDebugKotlin` reussit sans rien ecrire. C'est precisement ce
+      # qui s'est passe a la premiere tentative (`kspDebugKotlin FROM-CACHE`,
+      # puis aucun fichier produit).
+      - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-disabled: true
 
       # Le wrapper n'est pas commite : meme amorcage que le workflow principal.
       - name: Ensure gradle wrapper exists
@@ -65,7 +72,7 @@ jobs:
 
       # KSP suffit : c'est le processeur Room qui ecrit le JSON, pas l'assemblage.
       - name: Run KSP
-        run: ./gradlew :app:kspDebugKotlin --no-daemon --stacktrace
+        run: ./gradlew :app:kspDebugKotlin --no-daemon --no-build-cache --rerun-tasks --stacktrace
 
       - name: Show what was produced
         run: |
