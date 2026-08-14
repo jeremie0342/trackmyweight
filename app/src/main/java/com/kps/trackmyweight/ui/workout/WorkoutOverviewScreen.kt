@@ -42,6 +42,7 @@ import com.kps.trackmyweight.data.db.entity.PersonalRecordEntity
 import com.kps.trackmyweight.data.db.entity.WorkoutSessionEntity
 import com.kps.trackmyweight.data.db.entity.WorkoutTemplateEntity
 import com.kps.trackmyweight.data.db.enums.PrKind
+import com.kps.trackmyweight.data.repository.DayPlan
 import com.kps.trackmyweight.ui.common.formatDateFr
 import com.kps.trackmyweight.ui.common.formatFr
 import com.kps.trackmyweight.ui.common.formatTimeFr
@@ -56,6 +57,7 @@ fun WorkoutOverviewScreen(
     onOpenCardio: () -> Unit = {},
     onOpenProgression: () -> Unit = {},
     onOpenRotations: () -> Unit = {},
+    onOpenPrograms: () -> Unit = {},
     vm: WorkoutOverviewViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
@@ -87,38 +89,8 @@ fun WorkoutOverviewScreen(
                 ResumeCard(session = active, onResume = { onResumeSession(active.id) })
             }
 
-            state.rotationSuggestion?.let { suggested ->
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    ),
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.fillMaxWidth()
-                        .clickable { onPrepareSession(suggested.id) },
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                "Au programme aujourd'hui",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                suggested.name,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Medium,
-                            )
-                        }
-                        Icon(
-                            Icons.Outlined.PlayArrow,
-                            contentDescription = "Préparer",
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                }
+            state.todaysPlan?.let { plan ->
+                TodaysPlanCard(plan = plan, onPrepare = { onPrepareSession(it) })
             }
 
             Section("Templates") {
@@ -141,6 +113,7 @@ fun WorkoutOverviewScreen(
                 }
                 TextButton(onClick = { onEditTemplate(null) }) { Text("+ Nouveau template") }
                 TextButton(onClick = onOpenRotations) { Text("Gérer les rotations") }
+                TextButton(onClick = onOpenPrograms) { Text("Gérer les programmes") }
             }
 
             Section("Cardio") {
@@ -321,6 +294,83 @@ private fun SessionRow(s: WorkoutSessionEntity, onShare: () -> Unit) {
         }
         IconButton(onClick = onShare) {
             Icon(Icons.Outlined.Share, contentDescription = "Partager", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/**
+ * Ce qui est prevu aujourd'hui.
+ *
+ * Distingue trois cas que le modele separe deja : une seance planifiee, un
+ * repos explicite, et l'absence de consigne. Confondre les deux derniers
+ * laisserait croire a un oubli de planification un jour de repos voulu.
+ */
+@Composable
+private fun TodaysPlanCard(plan: DayPlan, onPrepare: (Long) -> Unit) {
+    val meso = plan.mesocycle
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth().let { m ->
+            if (plan is DayPlan.Training) m.clickable { onPrepare(plan.template.id) } else m
+        },
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Au programme aujourd'hui",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                when (plan) {
+                    is DayPlan.Training -> Text(
+                        plan.template.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    is DayPlan.Rest -> {
+                        Text(
+                            "Repos",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium,
+                        )
+                        plan.notes?.let {
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    is DayPlan.Nothing -> Text(
+                        "Rien de planifie",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                meso?.let {
+                    Text(
+                        "Semaine ${it.currentWeek}/${it.totalWeeks}" +
+                            if (it.isOverdue) " · bloc termine" else "",
+                        style = MaterialTheme.typography.labelSmall.tabular(),
+                        color = if (it.isOverdue) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    )
+                }
+            }
+            if (plan is DayPlan.Training) {
+                Icon(
+                    Icons.Outlined.PlayArrow,
+                    contentDescription = "Preparer",
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
     }
 }

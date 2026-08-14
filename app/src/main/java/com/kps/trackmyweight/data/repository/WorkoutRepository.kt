@@ -10,6 +10,8 @@ import com.kps.trackmyweight.data.db.entity.PainContextRow
 import com.kps.trackmyweight.data.db.entity.PainHotspotRow
 import com.kps.trackmyweight.data.db.entity.PainLogEntity
 import com.kps.trackmyweight.data.db.entity.PerformedExerciseEntity
+import com.kps.trackmyweight.data.db.entity.ProgramDayEntity
+import com.kps.trackmyweight.data.db.entity.ProgramEntity
 import com.kps.trackmyweight.data.db.entity.PerformedSetEntity
 import com.kps.trackmyweight.data.db.entity.PersonalRecordEntity
 import com.kps.trackmyweight.data.db.entity.TemplateExerciseEntity
@@ -24,6 +26,7 @@ import com.kps.trackmyweight.data.db.enums.PainArea
 import com.kps.trackmyweight.data.db.enums.PrKind
 import com.kps.trackmyweight.data.db.enums.SetType
 import com.kps.trackmyweight.data.db.entity.CardioSessionEntity
+import com.kps.trackmyweight.domain.calc.MesocycleProgress
 import com.kps.trackmyweight.domain.calc.MetCalories
 import com.kps.trackmyweight.domain.calc.OneRepMax
 import com.kps.trackmyweight.domain.calc.PrDetector
@@ -70,6 +73,42 @@ data class PlannedExercise(
     /** Exercices partageant ce numéro : enchaînés en superset. */
     val supersetGroup: Int? = null,
 )
+
+/** D'où vient la séance proposée pour aujourd'hui. */
+enum class PlanSource {
+    /** Jour du programme actif pointant directement sur un template. */
+    PROGRAM,
+
+    /** Jour du programme actif pointant sur une rotation, résolue au suivant. */
+    PROGRAM_ROTATION,
+
+    /** Aucun programme actif : rotation autonome calée sur le jour de la semaine. */
+    ROTATION,
+}
+
+/**
+ * Ce qui est prévu aujourd'hui.
+ *
+ * [MesocycleProgress] est nul quand la suggestion ne vient pas d'un programme :
+ * une rotation autonome n'a pas de notion de bloc.
+ */
+sealed interface DayPlan {
+    val mesocycle: MesocycleProgress?
+
+    data class Training(
+        val template: WorkoutTemplateEntity,
+        val source: PlanSource,
+        override val mesocycle: MesocycleProgress?,
+    ) : DayPlan
+
+    data class Rest(
+        override val mesocycle: MesocycleProgress?,
+        val notes: String? = null,
+    ) : DayPlan
+
+    /** Rien de planifié : ni template, ni repos explicite. */
+    data class Nothing(override val mesocycle: MesocycleProgress?) : DayPlan
+}
 
 /** Résultat du ménage effectué au démarrage sur les séances laissées ouvertes. */
 data class StaleSessionCleanup(
@@ -563,19 +602,126 @@ class WorkoutRepository @Inject constructor(
     suspend fun deleteRotation(groupId: Long) = workoutDao.deleteRotationGroup(groupId)
 
     /**
-     * Template suggéré pour aujourd'hui : celui du groupe de rotation calé sur
-     * le jour courant, positionné après la dernière séance faite dans ce groupe.
+     * Ce qui est prévu aujourd'hui.
      *
-     * `nextTemplateInRotation` existait dans le DAO et le repository sans qu'aucun
-     * écran ne l'appelle : la rotation annoncée n'était jamais résolue.
+     * Deux niveaux, dans cet ordre : un programme actif définit le planning
+     * complet de la semaine et prime ; à défaut, on retombe sur une rotation
+     * autonome calée sur le jour courant.
+     *
+     * `nextTemplateInRotation` et toute la table `program` existaient sans
+     * qu'aucun écran ne les résolve : le planning annoncé n'était jamais calculé.
      */
-    suspend fun todaysRotationSuggestion(): WorkoutTemplateEntity? {
-        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+    suspend fun todaysPlan(): DayPlan {
+        val today = today()
         val isoDay = today.dayOfWeek.isoDayNumber
+
+        val program = workoutDao.observeActiveProgram().first()
+        if (program != null) {
+            val day = workoutDao.getProgramDays(program.id).firstOrNull { it.dayOfWeek == isoDay }
+            val progress = MesocycleProgress.of(program, today)
+            when {
+                day == null -> return DayPlan.Nothing(progress)
+                day.isRest -> return DayPlan.Rest(progress, day.notes)
+                day.templateId != null -> {
+                    val template = workoutDao.getTemplate(day.templateId)
+                    if (template != null) return DayPlan.Training(template, PlanSource.PROGRAM, progress)
+                }
+                day.rotationGroupId != null -> {
+                    val template = nextTemplateInRotation(day.rotationGroupId)
+                    if (template != null) return DayPlan.Training(template, PlanSource.PROGRAM_ROTATION, progress)
+                }
+            }
+            return DayPlan.Nothing(progress)
+        }
+
         val group = workoutDao.observeRotationGroups().first().firstOrNull { it.dayOfWeek == isoDay }
-            ?: return null
-        return nextTemplateInRotation(group.id)
+            ?: return DayPlan.Nothing(null)
+        val template = nextTemplateInRotation(group.id) ?: return DayPlan.Nothing(null)
+        return DayPlan.Training(template, PlanSource.ROTATION, null)
     }
+
+    // ─────── Programmes ───────
+
+    fun observePrograms(): Flow<List<ProgramEntity>> = workoutDao.observePrograms()
+
+    fun observeActiveProgram(): Flow<ProgramEntity?> = workoutDao.observeActiveProgram()
+
+    fun observeAllProgramDays(): Flow<List<ProgramDayEntity>> = workoutDao.observeAllProgramDays()
+
+    suspend fun getProgramDays(programId: Long): List<ProgramDayEntity> =
+        workoutDao.getProgramDays(programId)
+
+    /**
+     * Crée ou met à jour un programme et son planning hebdomadaire.
+     *
+     * Les jours sont réécrits intégralement, comme pour les templates : calculer
+     * un diff sur sept lignes coûterait plus cher que de les remplacer.
+     */
+    suspend fun saveProgram(
+        programId: Long?,
+        name: String,
+        startDate: LocalDate,
+        mesocycleWeeks: Int,
+        days: List<ProgramDayEntity>,
+        makeActive: Boolean,
+        notes: String? = null,
+    ): Long = db.withTransaction {
+        val now = Clock.System.now()
+        val id = if (programId == null) {
+            workoutDao.insertProgram(
+                ProgramEntity(
+                    name = name,
+                    isCoachProgram = false,
+                    startDate = startDate,
+                    mesocycleWeeks = mesocycleWeeks,
+                    notes = notes,
+                    isActive = false,
+                    createdAt = now,
+                    updatedAt = now,
+                )
+            )
+        } else {
+            val existing = workoutDao.getProgram(programId)
+            workoutDao.updateProgram(
+                ProgramEntity(
+                    id = programId,
+                    name = name,
+                    isCoachProgram = existing?.isCoachProgram ?: false,
+                    startDate = startDate,
+                    endDate = existing?.endDate,
+                    mesocycleWeeks = mesocycleWeeks,
+                    notes = notes,
+                    isActive = existing?.isActive ?: false,
+                    createdAt = existing?.createdAt ?: now,
+                    updatedAt = now,
+                )
+            )
+            programId
+        }
+
+        workoutDao.clearProgramDays(id)
+        // Les jours de repos sont conservés tels quels : « repos » et « rien de
+        // prévu » ne veulent pas dire la même chose, et l'UI les distingue.
+        // Un jour absent de la liste est un jour sans consigne.
+        val prepared = days.map { it.copy(id = 0, programId = id) }
+        if (prepared.isNotEmpty()) workoutDao.setProgramDays(prepared)
+
+        if (makeActive) {
+            workoutDao.deactivateAllPrograms()
+            workoutDao.activateProgram(id)
+        }
+        id
+    }
+
+    /** Un seul programme actif à la fois. */
+    suspend fun activateProgram(programId: Long) = db.withTransaction {
+        workoutDao.deactivateAllPrograms()
+        workoutDao.activateProgram(programId)
+    }
+
+    suspend fun deactivateAllPrograms() = workoutDao.deactivateAllPrograms()
+
+    suspend fun deleteProgram(programId: Long) = workoutDao.deleteProgram(programId)
 
     // ─────── Douleurs ───────
 

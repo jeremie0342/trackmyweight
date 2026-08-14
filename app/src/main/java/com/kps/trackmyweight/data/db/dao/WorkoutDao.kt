@@ -126,6 +126,28 @@ interface WorkoutDao {
     @Query("SELECT * FROM program_day WHERE programId = :programId ORDER BY dayOfWeek")
     suspend fun getProgramDays(programId: Long): List<ProgramDayEntity>
 
+    @Query("SELECT * FROM program ORDER BY isActive DESC, startDate DESC")
+    fun observePrograms(): Flow<List<ProgramEntity>>
+
+    @Query("SELECT * FROM program WHERE id = :id LIMIT 1")
+    suspend fun getProgram(id: Long): ProgramEntity?
+
+    @Query("SELECT * FROM program_day ORDER BY programId, dayOfWeek")
+    fun observeAllProgramDays(): Flow<List<ProgramDayEntity>>
+
+    @Query("DELETE FROM program WHERE id = :id")
+    suspend fun deleteProgram(id: Long)
+
+    @Query("DELETE FROM program_day WHERE programId = :programId")
+    suspend fun clearProgramDays(programId: Long)
+
+    /** Un seul programme actif à la fois : on désactive tout avant d'en activer un. */
+    @Query("UPDATE program SET isActive = 0")
+    suspend fun deactivateAllPrograms()
+
+    @Query("UPDATE program SET isActive = 1 WHERE id = :id")
+    suspend fun activateProgram(id: Long)
+
     // ── Sessions ──────────────────────────────────────────
     @Insert
     suspend fun insertSession(session: WorkoutSessionEntity): Long

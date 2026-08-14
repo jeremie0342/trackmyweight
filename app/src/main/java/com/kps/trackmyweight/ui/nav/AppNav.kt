@@ -47,6 +47,7 @@ import com.kps.trackmyweight.ui.workout.WorkoutOverviewScreen
 import com.kps.trackmyweight.ui.workout.exercise.ExerciseDetailScreen
 import com.kps.trackmyweight.ui.workout.progress.ProgressionScreen
 import com.kps.trackmyweight.ui.workout.pain.PainHistoryScreen
+import com.kps.trackmyweight.ui.workout.program.ProgramsScreen
 import com.kps.trackmyweight.ui.workout.rotation.RotationsScreen
 import com.kps.trackmyweight.ui.workout.cardio.CardioLogScreen
 import com.kps.trackmyweight.ui.workout.session.SessionActiveScreen
@@ -139,6 +140,9 @@ fun AppNavHost(navController: NavHostController) {
         composable("pain") {
             PainHistoryScreen(onBack = { navController.popBackStack() })
         }
+        composable("programs") {
+            ProgramsScreen(onBack = { navController.popBackStack() })
+        }
         composable("rotations") {
             RotationsScreen(onBack = { navController.popBackStack() })
         }
@@ -222,6 +226,7 @@ private fun RootPagerScreen(navController: NavHostController) {
                         onResumeSession = { sessionId -> navController.navigate("session/$sessionId") },
                         onOpenProgression = { navController.navigate("progression") },
                         onOpenRotations = { navController.navigate("rotations") },
+                        onOpenPrograms = { navController.navigate("programs") },
                         onEditTemplate = { id -> navController.navigate("template/${id ?: 0L}") },
                         onOpenCardio = { navController.navigate("cardio") },
                     )

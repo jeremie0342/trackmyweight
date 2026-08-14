@@ -6,6 +6,7 @@ import com.kps.trackmyweight.data.db.entity.PersonalRecordEntity
 import com.kps.trackmyweight.data.db.entity.WorkoutSessionEntity
 import com.kps.trackmyweight.data.db.entity.WorkoutTemplateEntity
 import com.kps.trackmyweight.data.repository.ExerciseRepository
+import com.kps.trackmyweight.data.repository.DayPlan
 import com.kps.trackmyweight.data.repository.WorkoutRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,8 +22,8 @@ data class WorkoutOverviewUiState(
     val recentSessions: List<WorkoutSessionEntity> = emptyList(),
     val recentPrs: List<PersonalRecordEntity> = emptyList(),
     val activeSession: WorkoutSessionEntity? = null,
-    /** Template proposé par la rotation calée sur le jour courant. */
-    val rotationSuggestion: WorkoutTemplateEntity? = null,
+    /** Ce qui est prévu aujourd'hui : programme actif, sinon rotation. */
+    val todaysPlan: DayPlan? = null,
     val isLoading: Boolean = true,
 )
 
@@ -32,21 +33,21 @@ class WorkoutOverviewViewModel @Inject constructor(
     private val exerciseRepo: ExerciseRepository,
 ) : ViewModel() {
 
-    private val rotationSuggestion = MutableStateFlow<WorkoutTemplateEntity?>(null)
+    private val todaysPlan = MutableStateFlow<DayPlan?>(null)
 
     val state: StateFlow<WorkoutOverviewUiState> = combine(
         workoutRepo.observeTemplates(),
         workoutRepo.observeFinishedSessions(10),
         workoutRepo.observeRecentPrs(10),
         workoutRepo.observeActiveSession(),
-        rotationSuggestion,
-    ) { templates, sessions, prs, active, suggestion ->
+        todaysPlan,
+    ) { templates, sessions, prs, active, plan ->
         WorkoutOverviewUiState(
             templates = templates,
             recentSessions = sessions,
             recentPrs = prs,
             activeSession = active,
-            rotationSuggestion = suggestion,
+            todaysPlan = plan,
             isLoading = false,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), WorkoutOverviewUiState())
@@ -58,7 +59,7 @@ class WorkoutOverviewViewModel @Inject constructor(
             // (quitter l'écran ne clôturait rien). Sans ce ménage, le bandeau de
             // reprise proposerait indéfiniment une séance vieille de plusieurs jours.
             workoutRepo.closeStaleSessions()
-            rotationSuggestion.value = workoutRepo.todaysRotationSuggestion()
+            todaysPlan.value = runCatching { workoutRepo.todaysPlan() }.getOrNull()
         }
     }
 
