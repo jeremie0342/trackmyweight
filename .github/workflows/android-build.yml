@@ -276,14 +276,26 @@ jobs:
           } > summary.md
           python3 - "${files[@]}" >> summary.md <<'PY'
           import sys, xml.etree.ElementTree as ET
-          total = failed = skipped = 0
+          from collections import defaultdict
+
+          # AGP ecrit un XML par appareil, pas par classe, et son attribut
+          # `name` ne reprend que la premiere classe rencontree. S'y fier
+          # attribuerait tous les tests de la machine a une seule classe.
+          # On regroupe donc sur le classname de chaque cas.
+          stats = defaultdict(lambda: [0, 0, 0])
           for path in sys.argv[1:]:
-              s = ET.parse(path).getroot()
-              t, f = int(s.get("tests", 0)), int(s.get("failures", 0)) + int(s.get("errors", 0))
-              k = int(s.get("skipped", 0))
-              total, failed, skipped = total + t, failed + f, skipped + k
-              print(f"| `{s.get('name')}` | {t} | {f} | {k} |")
-          print(f"| **Total** | **{total}** | **{failed}** | **{skipped}** |")
+              for tc in ET.parse(path).getroot().iter("testcase"):
+                  row = stats[tc.get("classname")]
+                  row[0] += 1
+                  if tc.find("failure") is not None or tc.find("error") is not None:
+                      row[1] += 1
+                  if tc.find("skipped") is not None:
+                      row[2] += 1
+          for name in sorted(stats):
+              t, f, k = stats[name]
+              print(f"| `{name}` | {t} | {f} | {k} |")
+          totals = [sum(c) for c in zip(*stats.values())] if stats else [0, 0, 0]
+          print("| **Total** | **{}** | **{}** | **{}** |".format(*totals))
           PY
           cat summary.md
           cat summary.md >> "$GITHUB_STEP_SUMMARY"
