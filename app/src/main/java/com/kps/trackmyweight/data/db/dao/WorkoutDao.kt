@@ -446,6 +446,13 @@ interface WorkoutDao {
     @Update
     suspend fun updateCardio(session: CardioSessionEntity)
 
+    /** Les blocs partent avec la séance : cardio_block est en ON DELETE CASCADE. */
+    @Query("DELETE FROM cardio_session WHERE id = :id")
+    suspend fun deleteCardio(id: Long)
+
+    @Query("DELETE FROM cardio_block WHERE sessionId = :sessionId")
+    suspend fun clearCardioBlocks(sessionId: Long)
+
     @Query("SELECT * FROM cardio_session ORDER BY date DESC LIMIT :limit")
     fun observeRecentCardio(limit: Int = 30): Flow<List<CardioSessionEntity>>
 

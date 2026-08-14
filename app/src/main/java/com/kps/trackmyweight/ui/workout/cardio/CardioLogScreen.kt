@@ -1,6 +1,7 @@
 package com.kps.trackmyweight.ui.workout.cardio
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -50,6 +52,7 @@ import com.kps.trackmyweight.domain.calc.MetCalories
 import com.kps.trackmyweight.ui.common.ChoiceTile
 import com.kps.trackmyweight.ui.common.NumericField
 import com.kps.trackmyweight.ui.common.PrimaryButton
+import com.kps.trackmyweight.ui.common.formatFr
 import com.kps.trackmyweight.ui.common.labelFr
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -69,6 +72,8 @@ data class CardioBlockUi(
 )
 
 data class CardioLogUiState(
+    /** Non nul quand on corrige une seance existante plutot que d'en creer une. */
+    val editingSessionId: Long? = null,
     val recent: List<CardioSessionEntity> = emptyList(),
     val blocks: List<CardioBlockUi> = emptyList(),
     val bodyWeightKg: Float? = null,
@@ -101,6 +106,47 @@ class CardioLogViewModel @Inject constructor(
         _draft.update { it.copy(blocks = it.blocks.toMutableList().apply { removeAt(index) }) }
     }
 
+    /**
+     * Charge une seance existante dans l'editeur.
+     *
+     * Le cardio ne se corrigeait pas : une faute de frappe sur la duree etait
+     * definitive, alors que l'edition existait cote muscu.
+     */
+    fun startEdit(sessionId: Long) {
+        viewModelScope.launch {
+            val session = cardioRepo.get(sessionId) ?: return@launch
+            val blocks = cardioRepo.blocksFor(sessionId).map { block ->
+                CardioBlockUi(
+                    type = block.type,
+                    durationMin = block.durationSec / 60,
+                    distanceKm = block.distanceM?.let { it / 1000f },
+                    rpe = block.avgRpe,
+                )
+            }
+            _draft.update {
+                it.copy(
+                    editingSessionId = session.id,
+                    blocks = blocks,
+                    errorMessage = null,
+                )
+            }
+        }
+    }
+
+    fun cancelEdit() = _draft.update {
+        it.copy(editingSessionId = null, blocks = emptyList(), errorMessage = null)
+    }
+
+    fun delete(sessionId: Long) {
+        viewModelScope.launch {
+            runCatching { cardioRepo.delete(sessionId) }
+                .onFailure { e -> _draft.update { it.copy(errorMessage = e.message) } }
+            // Si on supprimait la seance en cours d'edition, l'editeur pointerait
+            // dans le vide.
+            if (_draft.value.editingSessionId == sessionId) cancelEdit()
+        }
+    }
+
     fun save() {
         val s = _draft.value
         if (s.blocks.isEmpty()) {
@@ -110,18 +156,21 @@ class CardioLogViewModel @Inject constructor(
         val body = s.bodyWeightKg ?: 70f
         _draft.update { it.copy(isSaving = true, errorMessage = null) }
         viewModelScope.launch {
-            runCatching {
-                cardioRepo.logMultiBlock(
-                    blocks = s.blocks.map { b ->
-                        CardioBlockDraft(
-                            type = b.type,
-                            durationSec = b.durationMin * 60,
-                            distanceM = b.distanceKm?.let { it * 1000f },
-                            avgRpe = b.rpe,
-                        )
-                    },
-                    bodyWeightKg = body,
+            val drafts = s.blocks.map { b ->
+                CardioBlockDraft(
+                    type = b.type,
+                    durationSec = b.durationMin * 60,
+                    distanceM = b.distanceKm?.let { it * 1000f },
+                    avgRpe = b.rpe,
                 )
+            }
+            runCatching {
+                val editing = s.editingSessionId
+                if (editing != null) {
+                    cardioRepo.update(editing, drafts, body)
+                } else {
+                    cardioRepo.logMultiBlock(drafts, body)
+                }
             }.onSuccess {
                 _draft.update {
                     CardioLogUiState(bodyWeightKg = s.bodyWeightKg, recent = it.recent, savedOk = true)
@@ -217,7 +266,14 @@ fun CardioLogScreen(
                 Text("Aucune séance loguée.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    state.recent.take(10).forEach { s -> CardioRow(s) }
+                    state.recent.take(10).forEach { s ->
+                        CardioRow(
+                            s = s,
+                            isEditing = state.editingSessionId == s.id,
+                            onEdit = { vm.startEdit(s.id) },
+                            onDelete = { vm.delete(s.id) },
+                        )
+                    }
                 }
             }
             Spacer(Modifier.height(120.dp))
@@ -318,18 +374,46 @@ private fun AddBlockDialog(
 }
 
 @Composable
-private fun CardioRow(s: CardioSessionEntity) {
+private fun CardioRow(
+    s: CardioSessionEntity,
+    isEditing: Boolean,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
+            .background(
+                if (isEditing) {
+                    MaterialTheme.colorScheme.surfaceContainerHigh
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainer
+                },
+            )
+            .clickable(onClick = onEdit)
+            .padding(start = 14.dp, top = 6.dp, bottom = 6.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text("${s.type.labelFr()} · ${s.durationSec / 60} min", style = MaterialTheme.typography.bodyLarge)
-            Text("${s.date} · ${s.caloriesEstimated.toInt()} kcal", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                "${s.date.formatFr()} · ${s.caloriesEstimated.toInt()} kcal" +
+                    if (isEditing) " · en cours de correction" else "",
+                style = MaterialTheme.typography.labelSmall,
+                color = if (isEditing) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
+        }
+        IconButton(onClick = onDelete) {
+            Icon(
+                Icons.Outlined.Delete,
+                contentDescription = "Supprimer",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

@@ -39,6 +39,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.minus
+import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Duration.Companion.hours
 import javax.inject.Inject
@@ -722,6 +723,30 @@ class WorkoutRepository @Inject constructor(
     suspend fun deactivateAllPrograms() = workoutDao.deactivateAllPrograms()
 
     suspend fun deleteProgram(programId: Long) = workoutDao.deleteProgram(programId)
+
+    // ─────── Calendrier ───────
+
+    /**
+     * Jours d'un mois ayant au moins une séance terminée, avec leur volume.
+     *
+     * Une seule requête pour tout le mois plutôt qu'une par jour : trente
+     * requêtes pour afficher une grille serait absurde.
+     */
+    suspend fun trainingDaysIn(year: Int, month: Int): Map<LocalDate, Float> {
+        val first = LocalDate(year, month, 1)
+        val last = first.plus(DatePeriod(months = 1)).minus(DatePeriod(days = 1))
+        return workoutDao.observeFinishedSessions(1000).first()
+            .filter { it.date >= first && it.date <= last }
+            .groupBy { it.date }
+            .mapValues { (_, sessions) -> sessions.sumOf { it.totalVolumeKg.toDouble() }.toFloat() }
+    }
+
+    /** Détail d'une journée : séances de muscu et cardio. */
+    suspend fun sessionsOn(date: LocalDate): List<WorkoutSessionEntity> =
+        workoutDao.getSessionsOnDate(date)
+
+    suspend fun cardioOn(date: LocalDate): List<CardioSessionEntity> =
+        workoutDao.getCardioInRange(date, date)
 
     // ─────── Douleurs ───────
 

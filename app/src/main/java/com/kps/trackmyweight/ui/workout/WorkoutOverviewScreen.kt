@@ -58,6 +58,7 @@ fun WorkoutOverviewScreen(
     onOpenProgression: () -> Unit = {},
     onOpenRotations: () -> Unit = {},
     onOpenPrograms: () -> Unit = {},
+    onOpenCalendar: () -> Unit = {},
     vm: WorkoutOverviewViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
@@ -147,6 +148,11 @@ fun WorkoutOverviewScreen(
             }
 
             Section("Historique") {
+                Button(
+                    onClick = onOpenCalendar,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                ) { Text("Calendrier d'entraînement") }
                 if (state.recentSessions.isEmpty()) {
                     Text(
                         "Aucune séance terminée.",
