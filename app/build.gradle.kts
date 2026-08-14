@@ -91,6 +91,15 @@ android {
     }
 }
 
+// Un job de test vert ne dit rien du nombre de tests reellement executes :
+// zero test passe aussi. En loguant chaque resultat, la CI devient verifiable —
+// on voit noir sur blanc que les tests migres sur la JVM tournent bien.
+tasks.withType<Test>().configureEach {
+    testLogging {
+        events("passed", "skipped", "failed")
+    }
+}
+
 dependencies {
     // Core
     implementation(libs.androidx.core.ktx)
