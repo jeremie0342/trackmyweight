@@ -12,6 +12,15 @@ No data is ever sent to a server. Everything stays on your phone, with optional 
 [![Min SDK](https://img.shields.io/badge/minSdk-26-green.svg)](https://developer.android.com/about/versions/oreo)
 [![Release](https://img.shields.io/github/v/release/jeremie0342/trackmyweight?include_prereleases)](https://github.com/jeremie0342/trackmyweight/releases/latest)
 
+## Download
+
+**[⬇ Download the latest APK](https://github.com/jeremie0342/trackmyweight/releases/latest)**
+
+Android 8.0 (API 26) or newer. No account, no Play Store, no permissions beyond
+what you explicitly grant. See [Installation](#installation) for the full steps.
+
+---
+
 > **Note on language:** the app's UI is currently in French. English translation is planned (see roadmap). Documentation, code, and contribution process are in English to welcome global contributors.
 
 ---
@@ -105,12 +114,16 @@ Official captures will be added under `docs/screenshots/`. See [docs/README.md](
 
 ### End user
 
-1. Go to the [Releases page](https://github.com/jeremie0342/trackmyweight/releases/latest)
-2. Download the APK `trackmyweight-vX.X.X.apk`
-3. Allow unknown sources in your browser's Android settings
-4. Open the APK from Downloads and install
+1. Open the **[latest release](https://github.com/jeremie0342/trackmyweight/releases/latest)**
+2. Under *Assets*, download `trackmyweight-vX.X.X.apk`
+3. Android will warn you the file comes from an unknown source — allow it for
+   your browser, this is expected for an app distributed outside the Play Store
+4. Open the APK from your Downloads and install
 
-Future updates will replace the app without wiping your data (stable signature).
+Updates replace the app in place without wiping your data (stable signature).
+
+> Before updating, it costs nothing to export a JSON backup from
+> **Settings → Backup**. Your data lives only on your phone: nothing else holds a copy.
 
 ### Developer
 

@@ -83,5 +83,23 @@ val MIGRATION_7_8 = object : Migration(7, 8) {
     }
 }
 
+/**
+ * v8 → v9 : activer l'habitude créatine sur les installs existantes.
+ *
+ * Elle était seedée désactivée, donc invisible, alors que le README l'annonce
+ * parmi les 7 habitudes par défaut. Changer le seed ne suffit pas :
+ * `insertHabitDefinitions` ignore les conflits, les lignes déjà présentes ne
+ * seraient jamais mises à jour.
+ *
+ * Le faire ici plutôt que dans `seedIfEmpty` est délibéré : une migration
+ * s'exécute exactement une fois. Un patch au démarrage réactiverait l'habitude
+ * à chaque lancement, écrasant le choix de l'utilisateur s'il la désactive.
+ */
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("UPDATE habit_definition SET isActive = 1 WHERE key = 'creatine'")
+    }
+}
+
 /** Toutes les migrations connues, dans l'ordre. */
-val ALL_MIGRATIONS = arrayOf(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+val ALL_MIGRATIONS = arrayOf(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)

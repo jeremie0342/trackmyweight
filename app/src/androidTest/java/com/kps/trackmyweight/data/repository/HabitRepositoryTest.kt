@@ -41,17 +41,16 @@ class HabitRepositoryTest {
         )
     }
 
-    @Test fun optional_habits_are_seeded_inactive() = runTest {
+    @Test fun all_seeded_habits_are_active_by_default() = runTest {
         repo.seedIfEmpty()
-        // `observeHabits` ne renvoie que les habitudes actives. La créatine est
-        // seedée désactivée : c'est un complément, pas une habitude universelle.
-        // Confondre les deux ensembles faisait échouer ce test (7 attendus, 6 reçus).
+        // `observeHabits` ne renvoie que les habitudes actives. Les 7 habitudes
+        // par defaut annoncees doivent donc toutes y figurer, creatine comprise.
         val active = repo.observeHabits().first()
-        val expectedActive = HabitSeed.items.count { it.isActive }
-        assertEquals(expectedActive, active.size)
+        assertEquals(HabitSeed.items.count { it.isActive }, active.size)
+        assertEquals(HabitSeed.items.size, active.size)
         assertTrue(
-            "la créatine doit rester opt-in",
-            active.none { it.key == "creatine" },
+            "la creatine fait partie des habitudes par defaut",
+            active.any { it.key == "creatine" },
         )
     }
 

@@ -121,6 +121,27 @@ jobs:
           prerelease: true
           make_latest: true
 
+      # Chaque build publie une prerelease : sans retention, elles s'accumulent
+      # indefiniment (67 au moment d'ajouter cette etape, pour 10 reellement utiles).
+      # On conserve les KEEP plus recentes et on supprime les autres avec leur tag.
+      # continue-on-error : le menage ne doit jamais faire echouer une release.
+      - name: Prune old prereleases
+        if: github.ref == 'refs/heads/main' || github.event.inputs.publish_release == 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          KEEP: 10
+        run: |
+          set -u
+          gh release list --repo "$GITHUB_REPOSITORY" --limit 200 --json tagName,createdAt,isPrerelease > releases.json
+          jq -r --argjson keep "$KEEP" 'map(select(.isPrerelease)) | sort_by(.createdAt) | reverse | .[$keep:][] | .tagName' releases.json > to-delete.txt
+          echo "A supprimer : $(wc -l < to-delete.txt) prerelease(s), on garde les $KEEP plus recentes."
+          while read -r tag; do
+            [ -z "$tag" ] && continue
+            echo "  suppression $tag"
+            gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
+          done < to-delete.txt
+
   unit-tests:
     name: JVM unit tests
     runs-on: ubuntu-latest
