@@ -8,6 +8,7 @@ import com.kps.trackmyweight.data.db.entity.MuscleGroupVolumeWeeklyEntity
 import com.kps.trackmyweight.data.db.enums.MaxLoadSource
 import com.kps.trackmyweight.data.db.enums.MuscleGroup
 import com.kps.trackmyweight.domain.calc.ExerciseSetsSummary
+import com.kps.trackmyweight.domain.calc.IsoWeek
 import com.kps.trackmyweight.domain.calc.OneRepMax
 import com.kps.trackmyweight.domain.calc.VolumeBucketing
 import com.kps.trackmyweight.domain.calc.VolumeVerdict
@@ -150,7 +151,7 @@ class StrengthRepository @Inject constructor(
     suspend fun refreshWeeklyVolume(reference: LocalDate = todayLocal()): List<VolumeVerdict> {
         val monday = reference.minus(DatePeriod(days = reference.dayOfWeek.isoDayNumber - 1))
         val sunday = monday.plus(DatePeriod(days = 6))
-        val isoWeek = isoWeekOf(reference)
+        val isoWeek = IsoWeek.of(reference)
 
         val rows = workoutDao.setsPerExerciseBetween(monday, sunday)
         if (rows.isEmpty()) return emptyList()
@@ -205,24 +206,13 @@ class StrengthRepository @Inject constructor(
      * figés au moment du calcul.
      */
     fun observeWeeklyVolumeHistory(weeks: Int = 8): Flow<List<MuscleGroupVolumeWeeklyEntity>> {
-        val since = isoWeekOf(todayLocal().minus(DatePeriod(days = weeks * 7)))
+        val since = IsoWeek.of(todayLocal().minus(DatePeriod(days = weeks * 7)))
         return workoutDao.observeWeeklyVolumeSince(since)
     }
 
     /** Volume déjà calculé pour une semaine donnée, sans recalcul. */
     suspend fun weeklyVolumeFor(week: LocalDate = todayLocal()): List<MuscleGroupVolumeWeeklyEntity> =
-        workoutDao.getWeeklyVolume(isoWeekOf(week))
-
-    /** Semaine ISO au format `2026-W33`, tel que stocké. */
-    private fun isoWeekOf(date: LocalDate): String {
-        // Le jeudi de la semaine détermine son année ISO.
-        val thursday = date.plus(DatePeriod(days = 4 - date.dayOfWeek.isoDayNumber))
-        val firstThursday = LocalDate(thursday.year, 1, 4).let { jan4 ->
-            jan4.plus(DatePeriod(days = 4 - jan4.dayOfWeek.isoDayNumber))
-        }
-        val week = (thursday.toEpochDays() - firstThursday.toEpochDays()) / 7 + 1
-        return "%d-W%02d".format(thursday.year, week)
-    }
+        workoutDao.getWeeklyVolume(IsoWeek.of(week))
 
     private fun todayLocal(): LocalDate =
         Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
