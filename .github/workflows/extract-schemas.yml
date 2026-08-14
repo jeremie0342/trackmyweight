@@ -1,0 +1,74 @@
+# Extraction des schemas Room d'une revision donnee.
+#
+# Room ecrit le JSON de schema a la compilation, et uniquement celui de la
+# version courante du code. Les schemas n'ayant jamais ete commites, celui de
+# la v5 — la derniere version publiee avant la mise en place des migrations —
+# n'existait nulle part : impossible de tester `MIGRATION_5_6` sans lui.
+#
+# Ce workflow reconstruit un schema historique en compilant l'arbre a la
+# revision demandee. C'est la seule source fiable : le reecrire a la main
+# reviendrait a tester mes migrations contre ma propre relecture du passe.
+#
+# Manuel uniquement. Une fois les JSON commites, il ne sert plus qu'a
+# retrouver un schema ancien qu'on aurait oublie de commiter.
+name: Extract Room schemas
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Revision a compiler (sha, tag ou branche)"
+        required: true
+        default: "main"
+
+jobs:
+  extract:
+    name: Extract schemas from ${{ github.event.inputs.ref }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref }}
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Cache Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # Le wrapper n'est pas commite : meme amorcage que le workflow principal.
+      - name: Ensure gradle wrapper exists
+        run: |
+          chmod +x ./gradlew || true
+          if [ ! -f "./gradlew" ]; then
+            curl -sL https://services.gradle.org/distributions/gradle-8.11.1-bin.zip -o /tmp/gradle.zip
+            unzip -q /tmp/gradle.zip -d /tmp/gradle
+            /tmp/gradle/gradle-8.11.1/bin/gradle wrapper --gradle-version 8.11.1 --distribution-type bin
+            chmod +x ./gradlew
+          fi
+
+      # KSP suffit : c'est le processeur Room qui ecrit le JSON, pas l'assemblage.
+      - name: Run KSP
+        run: ./gradlew :app:kspDebugKotlin --no-daemon --stacktrace
+
+      - name: Show what was produced
+        run: |
+          if [ ! -d app/schemas ]; then
+            echo "::error::Aucun schema produit — room.schemaLocation ou exportSchema manque a cette revision."
+            exit 1
+          fi
+          find app/schemas -name '*.json' -printf '%p  %s octets\n'
+
+      - name: Upload schemas
+        uses: actions/upload-artifact@v4
+        with:
+          name: room-schemas-${{ github.event.inputs.ref }}
+          path: app/schemas/**/*.json
+          if-no-files-found: error
