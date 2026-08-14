@@ -350,3 +350,18 @@ data class PainLogEntity(
     val notes: String? = null,
     val createdAt: Instant,
 )
+
+/** Zone douloureuse récurrente sur une période. Projection de lecture. */
+data class PainHotspotRow(
+    val area: PainArea,
+    val occurrences: Int,
+    val averageIntensity: Float,
+    val peakIntensity: Int,
+    val lastDate: LocalDate,
+)
+
+/** Exercice fréquemment associé à une zone douloureuse. */
+data class PainContextRow(
+    val exerciseName: String,
+    val occurrences: Int,
+)

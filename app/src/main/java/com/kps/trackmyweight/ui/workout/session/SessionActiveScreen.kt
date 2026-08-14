@@ -73,6 +73,7 @@ import com.kps.trackmyweight.ui.common.SelectableChip
 import com.kps.trackmyweight.ui.common.descriptionFr
 import com.kps.trackmyweight.ui.common.labelFr
 import com.kps.trackmyweight.ui.workout.exercise.CreateExerciseDialog
+import com.kps.trackmyweight.ui.workout.pain.PainDialog
 import com.kps.trackmyweight.ui.workout.setup.supersetLetter
 import com.kps.trackmyweight.ui.theme.tabular
 
@@ -95,6 +96,7 @@ fun SessionActiveScreen(
     var showRestDialog by remember { mutableStateOf(false) }
     var editingSet by remember { mutableStateOf<PerformedSetEntity?>(null) }
     var createFromQuery by remember { mutableStateOf<String?>(null) }
+    var painForExercise by remember { mutableStateOf<ExerciseCard?>(null) }
 
     // Le retour système ne doit jamais faire disparaître une séance en silence.
     BackHandler(enabled = !state.isDone) { showExitDialog = true }
@@ -169,6 +171,7 @@ fun SessionActiveScreen(
                         onEditSet = { editingSet = it },
                         onRemoveExercise = { vm.removeExercise(card.performed.id) },
                         onOpenDetail = { onOpenExercise(card.performed.exerciseId) },
+                        onReportPain = { painForExercise = card },
                         onGenerateWarmup = { topSet -> vm.generateWarmupSets(card.performed, topSet) },
                         warmupPreview = { topSet -> vm.warmupPreview(card.performed, topSet) },
                     )
@@ -211,6 +214,17 @@ fun SessionActiveScreen(
             onCreateRequested = { query -> createFromQuery = query; showAddExerciseSheet = false },
             onDismiss = { showAddExerciseSheet = false },
             onPick = { id -> vm.addExercise(id); showAddExerciseSheet = false },
+        )
+    }
+
+    painForExercise?.let { card ->
+        PainDialog(
+            contextExerciseName = card.performed.exerciseNameSnapshot,
+            onDismiss = { painForExercise = null },
+            onConfirm = { draft ->
+                vm.logPain(card.performed.exerciseId, draft)
+                painForExercise = null
+            },
         )
     }
 
@@ -438,6 +452,7 @@ private fun ExerciseCardView(
     onEditSet: (PerformedSetEntity) -> Unit,
     onRemoveExercise: () -> Unit,
     onOpenDetail: () -> Unit,
+    onReportPain: () -> Unit,
     onGenerateWarmup: (Float) -> Unit,
     warmupPreview: (Float) -> List<WarmupSet>,
 ) {
@@ -602,6 +617,14 @@ private fun ExerciseCardView(
             }
 
             SetTypePicker(selected = setType, onSelect = { setType = it })
+
+            TextButton(onClick = onReportPain) {
+                Text(
+                    "Signaler une douleur",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
 
             Button(
                 onClick = {

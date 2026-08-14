@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CameraAlt
+import androidx.compose.material.icons.outlined.HealthAndSafety
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.MonitorWeight
 import androidx.compose.material.icons.outlined.Straighten
@@ -35,6 +36,7 @@ fun CorpsHubScreen(
     onOpenWeight: () -> Unit,
     onOpenMeasurements: () -> Unit,
     onOpenPhotos: () -> Unit,
+    onOpenPain: () -> Unit = {},
 ) {
     Scaffold(containerColor = MaterialTheme.colorScheme.background) { insets ->
         Column(
@@ -56,6 +58,7 @@ fun CorpsHubScreen(
             HubRow("Poids", "Pesées quotidiennes, tendance, IMC", Icons.Outlined.MonitorWeight, onOpenWeight)
             HubRow("Mensurations", "Cou, taille, hanches, bras, cuisses + % gras Navy", Icons.Outlined.Straighten, onOpenMeasurements)
             HubRow("Photos", "3 angles, comparaison avant/après", Icons.Outlined.CameraAlt, onOpenPhotos)
+            HubRow("Douleurs", "Zones récurrentes et mouvements associés", Icons.Outlined.HealthAndSafety, onOpenPain)
             Spacer(Modifier.height(120.dp))
         }
     }

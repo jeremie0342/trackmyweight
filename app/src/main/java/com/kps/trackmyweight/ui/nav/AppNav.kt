@@ -46,6 +46,7 @@ import com.kps.trackmyweight.ui.weight.WeightScreen
 import com.kps.trackmyweight.ui.workout.WorkoutOverviewScreen
 import com.kps.trackmyweight.ui.workout.exercise.ExerciseDetailScreen
 import com.kps.trackmyweight.ui.workout.progress.ProgressionScreen
+import com.kps.trackmyweight.ui.workout.pain.PainHistoryScreen
 import com.kps.trackmyweight.ui.workout.rotation.RotationsScreen
 import com.kps.trackmyweight.ui.workout.cardio.CardioLogScreen
 import com.kps.trackmyweight.ui.workout.session.SessionActiveScreen
@@ -134,6 +135,9 @@ fun AppNavHost(navController: NavHostController) {
         }
         composable("protein_value") {
             ProteinValueScreen(onBack = { navController.popBackStack() })
+        }
+        composable("pain") {
+            PainHistoryScreen(onBack = { navController.popBackStack() })
         }
         composable("rotations") {
             RotationsScreen(onBack = { navController.popBackStack() })
@@ -228,6 +232,7 @@ private fun RootPagerScreen(navController: NavHostController) {
                         onOpenWeight = { navController.navigate("weight") },
                         onOpenMeasurements = { navController.navigate("measurements") },
                         onOpenPhotos = { navController.navigate("photos") },
+                        onOpenPain = { navController.navigate("pain") },
                     )
                     TopLevel.SETTINGS -> SettingsScreen(
                         onOpenGyms = { navController.navigate("gyms") },

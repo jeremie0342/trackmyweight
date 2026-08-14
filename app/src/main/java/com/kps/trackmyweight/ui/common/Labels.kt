@@ -5,6 +5,7 @@ import com.kps.trackmyweight.data.db.enums.EquipmentCategory
 import com.kps.trackmyweight.data.db.enums.ExerciseForce
 import com.kps.trackmyweight.data.db.enums.ExerciseMechanics
 import com.kps.trackmyweight.data.db.enums.MuscleGroup
+import com.kps.trackmyweight.data.db.enums.PainArea
 import com.kps.trackmyweight.data.db.enums.SetType
 import com.kps.trackmyweight.domain.calc.DistributionQuality
 import com.kps.trackmyweight.domain.calc.VolumeStatus
@@ -128,4 +129,32 @@ fun DistributionQuality.labelFr(): String = when (this) {
     DistributionQuality.GOOD -> "Correcte"
     DistributionQuality.UNBALANCED -> "Déséquilibrée"
     DistributionQuality.INSUFFICIENT -> "Insuffisante"
+}
+
+fun PainArea.labelFr(): String = when (this) {
+    PainArea.SHOULDER_L -> "Épaule gauche"
+    PainArea.SHOULDER_R -> "Épaule droite"
+    PainArea.ELBOW_L -> "Coude gauche"
+    PainArea.ELBOW_R -> "Coude droit"
+    PainArea.WRIST_L -> "Poignet gauche"
+    PainArea.WRIST_R -> "Poignet droit"
+    PainArea.LOWER_BACK -> "Bas du dos"
+    PainArea.KNEE_L -> "Genou gauche"
+    PainArea.KNEE_R -> "Genou droit"
+    PainArea.HIP_L -> "Hanche gauche"
+    PainArea.HIP_R -> "Hanche droite"
+    PainArea.ANKLE_L -> "Cheville gauche"
+    PainArea.ANKLE_R -> "Cheville droite"
+    PainArea.NECK -> "Nuque"
+    PainArea.UPPER_BACK -> "Haut du dos"
+    PainArea.OTHER -> "Autre"
+}
+
+/** Qualification d'une intensité sur 10, pour éviter d'afficher un nombre nu. */
+fun painIntensityLabelFr(intensity: Int): String = when {
+    intensity <= 2 -> "Gêne légère"
+    intensity <= 4 -> "Inconfort"
+    intensity <= 6 -> "Douleur nette"
+    intensity <= 8 -> "Douleur forte"
+    else -> "Douleur sévère"
 }

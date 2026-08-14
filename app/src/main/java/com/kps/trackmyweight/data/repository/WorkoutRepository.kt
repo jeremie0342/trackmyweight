@@ -6,6 +6,9 @@ import com.kps.trackmyweight.data.db.dao.ExerciseDao
 import com.kps.trackmyweight.data.db.dao.WorkoutDao
 import com.kps.trackmyweight.data.db.entity.CardioBlockEntity
 import com.kps.trackmyweight.data.db.entity.ExerciseMaxLoadEntity
+import com.kps.trackmyweight.data.db.entity.PainContextRow
+import com.kps.trackmyweight.data.db.entity.PainHotspotRow
+import com.kps.trackmyweight.data.db.entity.PainLogEntity
 import com.kps.trackmyweight.data.db.entity.PerformedExerciseEntity
 import com.kps.trackmyweight.data.db.entity.PerformedSetEntity
 import com.kps.trackmyweight.data.db.entity.PersonalRecordEntity
@@ -17,6 +20,7 @@ import com.kps.trackmyweight.data.db.entity.WorkoutTemplateEntity
 import com.kps.trackmyweight.data.db.enums.CardioSource
 import com.kps.trackmyweight.data.db.enums.CardioType
 import com.kps.trackmyweight.data.db.enums.MaxLoadSource
+import com.kps.trackmyweight.data.db.enums.PainArea
 import com.kps.trackmyweight.data.db.enums.PrKind
 import com.kps.trackmyweight.data.db.enums.SetType
 import com.kps.trackmyweight.data.db.entity.CardioSessionEntity
@@ -26,10 +30,12 @@ import com.kps.trackmyweight.domain.calc.PrDetector
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.datetime.Clock
+import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.isoDayNumber
+import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Duration.Companion.hours
 import javax.inject.Inject
@@ -571,6 +577,45 @@ class WorkoutRepository @Inject constructor(
         return nextTemplateInRotation(group.id)
     }
 
+    // ─────── Douleurs ───────
+
+    fun observeRecentPain(limit: Int = 50): Flow<List<PainLogEntity>> =
+        workoutDao.observeRecentPain(limit)
+
+    /** Zones récurrentes sur les [days] derniers jours. */
+    fun observePainHotspots(days: Int = 90): Flow<List<PainHotspotRow>> =
+        workoutDao.observePainHotspots(today().minus(DatePeriod(days = days)))
+
+    /**
+     * Enregistre une douleur.
+     *
+     * [contextExerciseId] est renseigné quand le signalement part d'un exercice
+     * en séance : c'est ce qui permet ensuite de rapprocher une zone
+     * douloureuse des mouvements qui la sollicitent.
+     */
+    suspend fun logPain(
+        area: PainArea,
+        intensity: Int,
+        contextExerciseId: Long? = null,
+        notes: String? = null,
+        date: LocalDate = today(),
+    ): Long = workoutDao.insertPainLog(
+        PainLogEntity(
+            date = date,
+            area = area,
+            intensity = intensity.coerceIn(0, 10),
+            contextExerciseId = contextExerciseId,
+            notes = notes?.takeIf { it.isNotBlank() },
+            createdAt = Clock.System.now(),
+        )
+    )
+
+    suspend fun deletePain(id: Long) = workoutDao.deletePainLog(id)
+
+    /** Exercices le plus souvent associés à une zone, sur les [days] derniers jours. */
+    suspend fun painContextFor(area: PainArea, days: Int = 90): List<PainContextRow> =
+        workoutDao.painContextExercises(area, today().minus(DatePeriod(days = days)))
+
     // ─────── PR helpers ───────
     fun oneRmFor(weightKg: Float, reps: Int): Float = OneRepMax.average(weightKg, reps)
 
@@ -594,6 +639,6 @@ class WorkoutRepository @Inject constructor(
 
     private suspend fun formatTs(t: Instant): String = t.toString()
 
-    private suspend fun today(): LocalDate =
+    private fun today(): LocalDate =
         Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
 }

@@ -12,6 +12,8 @@ import com.kps.trackmyweight.data.db.entity.ExerciseMaxLoadEntity
 import com.kps.trackmyweight.data.db.entity.ExerciseSetCountRow
 import com.kps.trackmyweight.data.db.entity.MonthlyTonnageRow
 import com.kps.trackmyweight.data.db.entity.MuscleGroupVolumeWeeklyEntity
+import com.kps.trackmyweight.data.db.entity.PainContextRow
+import com.kps.trackmyweight.data.db.entity.PainHotspotRow
 import com.kps.trackmyweight.data.db.entity.PainLogEntity
 import com.kps.trackmyweight.data.db.entity.PerformedExerciseEntity
 import com.kps.trackmyweight.data.db.entity.PerformedSetEntity
@@ -23,6 +25,7 @@ import com.kps.trackmyweight.data.db.entity.TemplateRotationGroupEntity
 import com.kps.trackmyweight.data.db.entity.TemplateRotationMemberEntity
 import com.kps.trackmyweight.data.db.entity.WorkoutSessionEntity
 import com.kps.trackmyweight.data.db.entity.WorkoutTemplateEntity
+import com.kps.trackmyweight.data.db.enums.PainArea
 import com.kps.trackmyweight.data.db.enums.PrKind
 import kotlinx.coroutines.flow.Flow
 import kotlinx.datetime.LocalDate
@@ -441,8 +444,45 @@ interface WorkoutDao {
     @Insert
     suspend fun insertPainLog(log: PainLogEntity): Long
 
-    @Query("SELECT * FROM pain_log ORDER BY date DESC LIMIT :limit")
+    @Query("SELECT * FROM pain_log ORDER BY date DESC, id DESC LIMIT :limit")
     fun observeRecentPain(limit: Int = 30): Flow<List<PainLogEntity>>
+
+    @Query("DELETE FROM pain_log WHERE id = :id")
+    suspend fun deletePainLog(id: Long)
+
+    /**
+     * Zones les plus signalées sur une période, avec leur intensité moyenne.
+     *
+     * C'est la vue utile : une douleur isolée n'apprend rien, une zone qui
+     * revient dix fois en un mois est un signal.
+     */
+    @Query("""
+        SELECT area,
+               COUNT(*) AS occurrences,
+               AVG(intensity) AS averageIntensity,
+               MAX(intensity) AS peakIntensity,
+               MAX(date) AS lastDate
+        FROM pain_log
+        WHERE date >= :since
+        GROUP BY area
+        ORDER BY occurrences DESC, averageIntensity DESC
+    """)
+    fun observePainHotspots(since: LocalDate): Flow<List<PainHotspotRow>>
+
+    /**
+     * Exercices le plus souvent associés à une zone donnée.
+     * Ne prouve rien à lui seul, mais oriente vers ce qu'il faut regarder.
+     */
+    @Query("""
+        SELECT e.name AS exerciseName, COUNT(*) AS occurrences
+        FROM pain_log pl
+        INNER JOIN exercise e ON e.id = pl.contextExerciseId
+        WHERE pl.area = :area AND pl.date >= :since
+        GROUP BY pl.contextExerciseId
+        ORDER BY occurrences DESC
+        LIMIT :limit
+    """)
+    suspend fun painContextExercises(area: PainArea, since: LocalDate, limit: Int = 3): List<PainContextRow>
 
     // ── Delete cascade helpers ────────────────────────────
     @Transaction

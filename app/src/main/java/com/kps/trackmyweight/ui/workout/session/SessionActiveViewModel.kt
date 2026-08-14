@@ -19,6 +19,7 @@ import com.kps.trackmyweight.domain.calc.RestTime
 import com.kps.trackmyweight.domain.calc.WarmupCalculator
 import com.kps.trackmyweight.domain.calc.WarmupSet
 import com.kps.trackmyweight.ui.workout.exercise.CustomExerciseDraft
+import com.kps.trackmyweight.ui.workout.pain.PainDraft
 import com.kps.trackmyweight.workout.rest.RestTimerScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -281,6 +282,24 @@ class SessionActiveViewModel @Inject constructor(
             runCatching { workoutRepo.moveExerciseInSession(performedExerciseId, delta) }
                 .onFailure { e -> _state.update { it.copy(errorMessage = e.message) } }
             refresh()
+        }
+    }
+
+    /**
+     * Enregistre une douleur ressentie sur un exercice de la séance.
+     * L'exercice sert de contexte : c'est ce qui permettra de rapprocher une
+     * zone récurrente des mouvements qui la sollicitent.
+     */
+    fun logPain(exerciseId: Long, draft: PainDraft) {
+        viewModelScope.launch {
+            runCatching {
+                workoutRepo.logPain(
+                    area = draft.area,
+                    intensity = draft.intensity,
+                    contextExerciseId = exerciseId,
+                    notes = draft.notes,
+                )
+            }.onFailure { e -> _state.update { it.copy(errorMessage = e.message) } }
         }
     }
 
