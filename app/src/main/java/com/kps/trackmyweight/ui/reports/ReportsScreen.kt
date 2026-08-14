@@ -163,6 +163,15 @@ fun ReportsScreen(
                 r.projection?.let { ProjectionCard(it) }
                 CoachAdvicesCard(r.advices, onApply = vm::applyAdvice)
             }
+            if (state.correlations.isNotEmpty()) {
+                Text(
+                    "Ce qui va ensemble",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                state.correlations.forEach { CorrelationCard(it) }
+            }
+
             PrimaryButton(text = "Régénérer", onClick = vm::generate, enabled = !state.isLoading)
             Spacer(Modifier.height(120.dp))
         }
@@ -263,15 +272,6 @@ private fun CoachAdvicesCard(
         shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (state.correlations.isNotEmpty()) {
-                Text(
-                    "Ce qui va ensemble",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                state.correlations.forEach { CorrelationCard(it) }
-            }
-
             Text("Coach", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             advices.forEach { a ->
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
