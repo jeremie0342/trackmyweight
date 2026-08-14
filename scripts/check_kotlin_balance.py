@@ -63,6 +63,17 @@ def scan(src: str) -> list[str]:
             if i >= n:
                 errors.append(f"chaîne brute non fermée (ligne {start})")
             i += 3
+        elif c == "`":
+            # Identifiant échappé : `fun \`fin d'annee\`()`. À traiter avant le
+            # littéral de caractère, sans quoi l'apostrophe de « d'annee » ouvre
+            # une chaîne fantôme et tout le reste du fichier part de travers.
+            # Les noms de tests en français en contiennent constamment.
+            start, i = line, i + 1
+            while i < n and src[i] not in ("`", "\n"):
+                i += 1
+            if i >= n or src[i] == "\n":
+                errors.append(f"identifiant échappé non fermé (ligne {start})")
+            i += 1
         elif c in ('"', "'"):
             quote, start, i = c, line, i + 1
             while i < n and src[i] != quote:
