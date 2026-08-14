@@ -44,6 +44,11 @@ GoogleService-Info.plist
 *.aab
 *.mp4
 
+# Outils Python (scripts/)
+__pycache__/
+*.py[cod]
+.venv/
+
 # OS
 .DS_Store
 Thumbs.db
