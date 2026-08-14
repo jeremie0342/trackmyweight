@@ -32,14 +32,15 @@ jobs:
         include:
           # Derniere revision ou la base etait en v5, avant les migrations.
           - { label: v5, ref: c779a16274d938ece626a1c8936f427fdb04f088 }
-          # Etat courant : v9, a commiter pour que les futures migrations
-          # soient testables sans repasser par ici.
-          - { label: v9, ref: chore/extract-schemas }
+          # Etat courant, quel qu'il soit : le commit qui declenche le run.
+          # Pointer une branche nommee la ferait pourrir des sa suppression.
+          - { label: current, ref: "" }
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          # Vide = le commit pousse, comportement par defaut de l'action.
           ref: ${{ matrix.ref }}
           fetch-depth: 0
 
