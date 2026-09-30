@@ -28,7 +28,6 @@ jobs:
       tag: ${{ steps.version.outputs.tag }}
       date: ${{ steps.version.outputs.date }}
       build_num: ${{ steps.version.outputs.build_num }}
-      apk_name: ${{ steps.rename.outputs.apk_name }}
 
     steps:
       - name: Checkout
@@ -75,7 +74,11 @@ jobs:
       - name: Build release APK
         env:
           RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
-          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          # L'alias n'est pas secret, et ne doit pas l'etre : GitHub masque toute
+          # valeur de secret dans les sorties de job, et « trackmyweight » figure
+          # dans le nom de l'APK. La sortie apk_name etait silencieusement videe,
+          # et la release v0.1.135 est partie sans fichier.
+          RELEASE_KEY_ALIAS: trackmyweight
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
           APP_VERSION_NAME: ${{ steps.version.outputs.tag }}
           APP_VERSION_CODE: ${{ steps.version.outputs.build_num }}
@@ -109,7 +112,6 @@ jobs:
           DEST="trackmyweight-${{ steps.version.outputs.tag }}.apk"
           mv "$SRC" "$DEST"
           echo "apk_path=$DEST" >> $GITHUB_OUTPUT
-          echo "apk_name=$DEST" >> $GITHUB_OUTPUT
           echo "SHA256: $(sha256sum "$DEST" | cut -d' ' -f1)"
 
       - name: Upload APK artifact
@@ -344,7 +346,10 @@ jobs:
             **Installation** : télécharge l'APK et installe depuis ton téléphone (autoriser les sources inconnues pour ton navigateur si besoin).
 
             **Tu avais la version « debug » (avant septembre 2026) ?** Celle-ci s'installe à côté, comme une nouvelle app. Dans l'ancienne : Paramètres → Exporter (ZIP + photos). Dans la nouvelle : Paramètres → Importer une sauvegarde. Puis désinstalle l'ancienne.
-          files: ${{ needs.build.outputs.apk_name }}
+          # Nom reconstruit depuis le tag plutot que transmis en sortie de job :
+          # une sortie masquee arrive vide, et la release partirait sans APK.
+          files: trackmyweight-${{ needs.build.outputs.tag }}.apk
+          fail_on_unmatched_files: true
           # Release a part entiere : /releases/latest, vers lequel pointe le
           # README, ignore les prereleases.
           prerelease: false
