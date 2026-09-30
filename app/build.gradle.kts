@@ -38,12 +38,31 @@ android {
                 keyPassword = System.getenv("DEBUG_KEY_PASSWORD") ?: "android"
             }
         }
+        // Cle de release : fournie uniquement par la CI (secrets RELEASE_*).
+        // Sans elle — build local, fork — le build release sort non signe, et
+        // la CI refuse de publier un APK dont le certificat n'est pas le bon.
+        val releaseKs = file("keystore/release.jks")
+        if (releaseKs.exists()) {
+            create("release") {
+                storeFile = releaseKs
+                storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+                keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            signingConfig = signingConfigs.findByName("release")
+            // R8 desactive pour la premiere release signee : seul le mode de
+            // signature change, le code livre est celui qui tourne deja en debug.
+            // Les tests (JVM et instrumentes) s'executent sur le build debug et
+            // ne verraient pas une classe retiree a tort par R8 — un crash au
+            // lancement ne se decouvrirait que sur le telephone. A activer dans
+            // un second temps, verifie sur appareil.
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

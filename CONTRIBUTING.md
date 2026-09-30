@@ -29,8 +29,13 @@ All builds can happen in the cloud via GitHub Actions:
 1. Fork the repo on GitHub
 2. Clone locally: `git clone git@github.com:<you>/trackmyweight.git`
 3. Edit with your favorite lightweight IDE (VS Code + Kotlin extension, IntelliJ Community, Zed)
-4. Configure the 4 GitHub Actions secrets on your fork (see `docs/CI_SETUP.md` — coming soon; for now generate a debug keystore and set `DEBUG_KEYSTORE_BASE64`, `DEBUG_KEYSTORE_PASSWORD=android`, `DEBUG_KEY_ALIAS=androiddebugkey`, `DEBUG_KEY_PASSWORD=android`)
-5. Push → APK is built automatically and published to Releases
+4. Configure the 4 release-signing secrets on your fork: generate your own keystore
+   (`keytool -genkeypair -storetype PKCS12 -keystore release.jks -alias <alias> -keyalg RSA -keysize 4096 -validity 10000`)
+   and set `RELEASE_KEYSTORE_BASE64` (the file, base64-encoded), `RELEASE_KEYSTORE_PASSWORD`,
+   `RELEASE_KEY_ALIAS` and `RELEASE_KEY_PASSWORD`. Then replace `EXPECTED_CERT_SHA256` in
+   `.github/workflows/android-build.yml` with your certificate's SHA-256, or the build will refuse
+   to publish an APK signed by an unknown key.
+5. Push → the signed release APK is built automatically and published to Releases
 
 ### With Android Studio
 

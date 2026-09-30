@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   build:
-    name: Assemble debug APK
+    name: Assemble signed release APK
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # Consommees par le job `release`, qui ne recompile pas : il recupere l'APK
@@ -47,17 +47,18 @@ jobs:
         with:
           gradle-home-cache-cleanup: true
 
-      - name: Decode debug keystore
+      # Sans cle, le build release sortirait non signe : inutilisable, et rien
+      # ne le signalerait avant l'installation. On echoue ici, tout de suite.
+      - name: Decode release keystore
         env:
-          KEYSTORE_B64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
+          KEYSTORE_B64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
         run: |
-          mkdir -p app/keystore
-          if [ -n "$KEYSTORE_B64" ]; then
-            echo "$KEYSTORE_B64" | base64 -d > app/keystore/debug.keystore
-            echo "Using debug keystore from secret."
-          else
-            echo "No DEBUG_KEYSTORE_BASE64 secret set — falling back to AGP auto-generated keystore (signatures will differ per build)."
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::error::Secret RELEASE_KEYSTORE_BASE64 absent : impossible de signer la release."
+            exit 1
           fi
+          mkdir -p app/keystore
+          echo "$KEYSTORE_B64" | base64 -d > app/keystore/release.jks
 
       - name: Compute version tag
         id: version
@@ -71,19 +72,40 @@ jobs:
           echo "date=$DATE" >> $GITHUB_OUTPUT
           echo "build_num=$BUILD_NUM" >> $GITHUB_OUTPUT
 
-      - name: Build debug APK
+      - name: Build release APK
         env:
-          DEBUG_KEYSTORE_PASSWORD: ${{ secrets.DEBUG_KEYSTORE_PASSWORD }}
-          DEBUG_KEY_ALIAS: ${{ secrets.DEBUG_KEY_ALIAS }}
-          DEBUG_KEY_PASSWORD: ${{ secrets.DEBUG_KEY_PASSWORD }}
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
           APP_VERSION_NAME: ${{ steps.version.outputs.tag }}
           APP_VERSION_CODE: ${{ steps.version.outputs.build_num }}
-        run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
+        run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
+
+      # Android refuse toute mise a jour signee par un autre certificat : un
+      # secret remplace par erreur casserait l'installation chez tout le monde.
+      # L'empreinte attendue est publique (c'est celle du certificat, pas de la
+      # cle) ; la comparer ici arrete le mauvais APK avant publication.
+      - name: Verify APK signature
+        env:
+          EXPECTED_CERT_SHA256: 77c208d55bffedd7078ee3df2aa92f20231a5d067738a9657c5b3c42ee345463
+        run: |
+          APK=$(find app/build/outputs/apk/release -name "*.apk" | head -n1)
+          if [ -z "$APK" ] || [[ "$APK" == *unsigned* ]]; then
+            echo "::error::APK release absent ou non signe : $APK"
+            exit 1
+          fi
+          APKSIGNER=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -n1)apksigner
+          "$APKSIGNER" verify --print-certs "$APK" | tee certs.txt
+          ACTUAL=$(grep -m1 "certificate SHA-256 digest" certs.txt | awk '{print $NF}')
+          if [ "$ACTUAL" != "$EXPECTED_CERT_SHA256" ]; then
+            echo "::error::Certificat inattendu : $ACTUAL (attendu $EXPECTED_CERT_SHA256)"
+            exit 1
+          fi
 
       - name: Rename APK
         id: rename
         run: |
-          SRC=$(find app/build/outputs/apk/debug -name "*.apk" | head -n1)
+          SRC=$(find app/build/outputs/apk/release -name "*.apk" | head -n1)
           DEST="trackmyweight-${{ steps.version.outputs.tag }}.apk"
           mv "$SRC" "$DEST"
           echo "apk_path=$DEST" >> $GITHUB_OUTPUT
@@ -313,31 +335,37 @@ jobs:
           tag_name: ${{ needs.build.outputs.tag }}
           name: TrackMyWeight ${{ needs.build.outputs.tag }}
           body: |
-            Debug build automatique, publie apres passage des tests.
+            Build release signe, publie apres passage des tests.
 
             - Commit : ${{ github.sha }}
             - Date : ${{ needs.build.outputs.date }}
             - Build #${{ needs.build.outputs.build_num }}
 
             **Installation** : télécharge l'APK et installe depuis ton téléphone (autoriser les sources inconnues pour ton navigateur si besoin).
+
+            **Tu avais la version « debug » (avant septembre 2026) ?** Celle-ci s'installe à côté, comme une nouvelle app. Dans l'ancienne : Paramètres → Exporter (ZIP + photos). Dans la nouvelle : Paramètres → Importer une sauvegarde. Puis désinstalle l'ancienne.
           files: ${{ needs.build.outputs.apk_name }}
-          prerelease: true
+          # Release a part entiere : /releases/latest, vers lequel pointe le
+          # README, ignore les prereleases.
+          prerelease: false
           make_latest: true
 
-      # Chaque build publie une prerelease : sans retention, elles s'accumulent
+      # Chaque build publie une release : sans retention, elles s'accumulent
       # indefiniment (67 au moment d'ajouter cette etape, pour 10 reellement utiles).
-      # On conserve les KEEP plus recentes et on supprime les autres avec leur tag.
+      # On conserve les KEEP plus recentes parmi celles de la CI (tags v0.1.*),
+      # qu'elles soient d'anciennes prereleases debug ou des releases signees ;
+      # les versions nommees a la main ne sont jamais touchees.
       # continue-on-error : le menage ne doit jamais faire echouer une release.
-      - name: Prune old prereleases
+      - name: Prune old CI releases
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           KEEP: 10
         run: |
           set -u
-          gh release list --repo "$GITHUB_REPOSITORY" --limit 200 --json tagName,createdAt,isPrerelease > releases.json
-          jq -r --argjson keep "$KEEP" 'map(select(.isPrerelease)) | sort_by(.createdAt) | reverse | .[$keep:][] | .tagName' releases.json > to-delete.txt
-          echo "A supprimer : $(wc -l < to-delete.txt) prerelease(s), on garde les $KEEP plus recentes."
+          gh release list --repo "$GITHUB_REPOSITORY" --limit 200 --json tagName,createdAt > releases.json
+          jq -r --argjson keep "$KEEP" 'map(select(.tagName | startswith("v0.1."))) | sort_by(.createdAt) | reverse | .[$keep:][] | .tagName' releases.json > to-delete.txt
+          echo "A supprimer : $(wc -l < to-delete.txt) release(s), on garde les $KEEP plus recentes."
           while read -r tag; do
             [ -z "$tag" ] && continue
             echo "  suppression $tag"

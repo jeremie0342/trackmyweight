@@ -109,6 +109,13 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
   local-first promise. The ZIP export is the backup path.
 - The `INTERNET` permission is removed (and stripped from library manifests):
   no feature uses the network, and the app can now prove it.
+- **Signed release builds.** Releases now ship a release APK signed with a
+  dedicated key instead of a debug build, and are published as full releases
+  (so the README's "latest release" link resolves). CI refuses to publish if the
+  key is missing or if the APK certificate does not match the expected
+  fingerprint. The package name loses its `.debug` suffix: the signed app
+  installs next to the old one, and data moves across with the ZIP export.
+  R8 minification stays off for now, pending an on-device check.
 - The Gradle wrapper is committed, with the distribution checksum pinned. The
   project builds locally with `./gradlew`, and CI no longer regenerates it.
 

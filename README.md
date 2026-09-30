@@ -120,7 +120,13 @@ Official captures will be added under `docs/screenshots/`. See [docs/README.md](
    your browser, this is expected for an app distributed outside the Play Store
 4. Open the APK from your Downloads and install
 
-Updates replace the app in place without wiping your data (stable signature).
+Updates replace the app in place without wiping your data: every release is
+signed with the same key, and CI checks the certificate before publishing.
+
+> **Coming from a debug build** (releases before the end of September 2026)?
+> The signed app installs next to it, as a separate app. In the old one,
+> **Settings → Export (ZIP + photos)**; in the new one, **Settings → Import a
+> backup**; then uninstall the old one.
 
 > Before updating, it costs nothing to export a backup from
 > **Settings → Backup**. Your data lives only on your phone: Android's own cloud
