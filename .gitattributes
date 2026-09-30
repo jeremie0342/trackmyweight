@@ -1,0 +1,5 @@
+# Scripts du wrapper Gradle : fins de ligne imposées, quel que soit l'OS de
+# celui qui committe. Un gradlew en CRLF ne s'exécute plus sur la CI Linux.
+gradlew text eol=lf
+*.bat text eol=crlf
+*.jar binary

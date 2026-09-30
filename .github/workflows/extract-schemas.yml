@@ -60,7 +60,8 @@ jobs:
         with:
           cache-disabled: true
 
-      # Le wrapper n'est pas commite : meme amorcage que le workflow principal.
+      # Le wrapper n'est commite que depuis septembre 2026 : les revisions
+      # anterieures, comme celle de la v5, n'en ont pas. On l'amorce alors.
       - name: Ensure gradle wrapper exists
         run: |
           chmod +x ./gradlew || true
