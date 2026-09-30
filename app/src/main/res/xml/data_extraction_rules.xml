@@ -1,14 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Aucune donnée ne quitte l'appareil par les mécanismes de sauvegarde Android.
+
+    Les photos sont chiffrées avec une clé de l'Android Keystore, qui ne quitte
+    jamais le téléphone. Restaurées ailleurs (sauvegarde cloud ou transfert vers
+    un nouvel appareil), elles seraient indéchiffrables, et le jeu de clés
+    restauré avec les préférences ferait échouer leur ouverture. La base, elle,
+    partirait chez Google alors que l'app se présente comme locale.
+
+    La sauvegarde passe par l'export ZIP (Paramètres), qui déchiffre les photos
+    et les re-chiffre à la restauration avec la clé du téléphone cible.
+
+    allowBackup="false" suffit pour la sauvegarde cloud, mais pas pour le
+    transfert d'appareil à appareil à partir d'Android 12 : d'où ces exclusions.
+-->
 <data-extraction-rules>
     <cloud-backup>
-        <include domain="database" path="." />
-        <include domain="sharedpref" path="." />
-        <include domain="file" path="photos/" />
-        <exclude domain="sharedpref" path="device_local.xml" />
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
     </cloud-backup>
     <device-transfer>
-        <include domain="database" path="." />
-        <include domain="sharedpref" path="." />
-        <include domain="file" path="photos/" />
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
     </device-transfer>
 </data-extraction-rules>
