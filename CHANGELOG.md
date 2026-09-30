@@ -91,8 +91,38 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 - Muscle groups and equipment categories are displayed in French instead of raw
   enum constants (`SHOULDERS_FRONT` → "Épaules avant", `BAR` → "Barres et
   disques"), and dates instead of raw ISO instants.
+- **Backup format v3: every table, not a hand-picked subset.** Templates,
+  programmes, rotations, gyms and their equipment, personal records, max-load
+  history, pain logs, custom exercises, recipes, alcohol, heart rate, weekly
+  reviews and **food prices** (the FCFA cost ranking) were simply not part of
+  the backup. Restoring now **replaces** the current data inside a single
+  transaction, so importing the same file twice no longer duplicates meals,
+  water and sessions, and a rejected file erases nothing. Exercises, equipment,
+  foods and habits are matched to the current catalogue by slug, key or name.
+  Version 2 files remain importable (merged, not replaced).
+- Restoring asks for confirmation first, and lists anything that could not be
+  restored instead of reporting a bare count.
+- **Android auto-backup and device-to-device transfer are disabled.** Photos
+  are encrypted with a Keystore key that never leaves the phone: restored on
+  another device they were unreadable, and the restored key set made opening
+  them fail. The database was also sent to Google, contradicting the
+  local-first promise. The ZIP export is the backup path.
+- The `INTERNET` permission is removed (and stripped from library manifests):
+  no feature uses the network, and the app can now prove it.
+- The Gradle wrapper is committed, with the distribution checksum pinned. The
+  project builds locally with `./gradlew`, and CI no longer regenerates it.
 
 ### Fixed
+- **Restoring a backup lost the whole training history.** Exercises were
+  looked up by a function that always returned null, so every session came
+  back empty — no exercise, no set — while the screen reported success.
+- Restored meal entries could be attached to the wrong food: an unknown name
+  fell back to the first full-text search hit, with its macros.
+- The export only covered the last two years of meals and water, stored water
+  as a daily total stamped with the export time, and only kept habit ticks for
+  days that also had a readiness check-in.
+- Import and export ran on the main thread (photo decryption and zip handling),
+  and the import stream was closed by the screen before being fully read.
 - **Destructive database fallback.** Any schema bump silently wiped all user
   data. Destructive fallback is now restricted to pre-v5 databases; from v5
   onwards a missing or broken migration fails loudly instead.

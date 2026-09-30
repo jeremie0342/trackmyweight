@@ -47,7 +47,8 @@ network-facing components are:
 Security perimeter:
 
 - ✅ AES-256 encryption of progress photos (Android Keystore)
-- ✅ JSON backup exportable locally only (no auto cloud upload)
+- ✅ Backup exported only where you choose; Android cloud backup and device transfer are disabled
+- ✅ No `INTERNET` permission
 - ✅ No data sent to third-party servers
 - ✅ Minimal permissions (camera opt-in, notifications opt-in, Health Connect opt-in)
 

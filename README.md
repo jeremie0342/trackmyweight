@@ -4,7 +4,7 @@
 
 An all-in-one app to drive a physical transformation: weight, measurements, photos, workout log, nutrition adapted to local foods, habits, recovery, weekly report with algorithmic coaching.
 
-No data is ever sent to a server. Everything stays on your phone, with optional Health Connect sync and manual JSON backup to your own cloud.
+No data is ever sent to a server — the app does not even hold the Internet permission. Everything stays on your phone, with optional Health Connect sync and a full ZIP backup to the folder of your choice.
 
 [![Build & Release](https://github.com/jeremie0342/trackmyweight/actions/workflows/android-build.yml/badge.svg)](https://github.com/jeremie0342/trackmyweight/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -103,7 +103,7 @@ Official captures will be added under `docs/screenshots/`. See [docs/README.md](
 
 ### System
 - **Health Connect**: auto read of weight / steps / sleep every 12h (opt-in)
-- **Full JSON backup / restore** — export to Drive/iCloud/USB
+- **Full backup / restore** — every table plus photos in one ZIP, to Drive/OneDrive/USB, daily if you want
 - **Context-aware notifications** (morning weigh-in, hydration, session not logged)
 - Multi-gym with active switch
 - **Material You** dynamic theme + dark-first
@@ -122,8 +122,10 @@ Official captures will be added under `docs/screenshots/`. See [docs/README.md](
 
 Updates replace the app in place without wiping your data (stable signature).
 
-> Before updating, it costs nothing to export a JSON backup from
-> **Settings → Backup**. Your data lives only on your phone: nothing else holds a copy.
+> Before updating, it costs nothing to export a backup from
+> **Settings → Backup**. Your data lives only on your phone: Android's own cloud
+> backup is deliberately disabled (encrypted photos cannot be restored on another
+> device), so the ZIP export is the only copy you have.
 
 ### Developer
 
@@ -156,7 +158,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md#development-setup) for the full setup.
 - **Health Connect** 1.1
 - **CameraX** 1.4 (custom capture with Compose overlay)
 - **Coil** (image loading)
-- **kotlinx-serialization** (JSON backup)
+- **kotlinx-serialization** (backup format)
 - **MediaCodec + MediaMuxer** (H.264 timelapse encoding)
 - **Android Keystore** (photo encryption)
 
