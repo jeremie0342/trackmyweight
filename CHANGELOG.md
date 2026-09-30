@@ -115,7 +115,10 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
   key is missing or if the APK certificate does not match the expected
   fingerprint. The package name loses its `.debug` suffix: the signed app
   installs next to the old one, and data moves across with the ZIP export.
-  R8 minification stays off for now, pending an on-device check.
+- **R8 minification and resource shrinking** on the release build, once the
+  first signed release was confirmed working on a device. Because tests run on
+  the debug build, a new CI job installs the exact release APK on an emulator
+  and launches it; publication is blocked if it crashes or dies.
 - The Gradle wrapper is committed, with the distribution checksum pinned. The
   project builds locally with `./gradlew`, and CI no longer regenerates it.
 

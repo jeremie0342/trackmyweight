@@ -55,14 +55,12 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.findByName("release")
-            // R8 desactive pour la premiere release signee : seul le mode de
-            // signature change, le code livre est celui qui tourne deja en debug.
-            // Les tests (JVM et instrumentes) s'executent sur le build debug et
-            // ne verraient pas une classe retiree a tort par R8 — un crash au
-            // lancement ne se decouvrirait que sur le telephone. A activer dans
-            // un second temps, verifie sur appareil.
-            isMinifyEnabled = false
-            isShrinkResources = false
+            // R8 actif. Les tests JVM et instrumentes tournent sur le build debug
+            // et ne verraient pas une classe retiree a tort : c'est le job
+            // `release-smoke` de la CI qui installe et lance l'APK release
+            // lui-meme, avant toute publication.
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

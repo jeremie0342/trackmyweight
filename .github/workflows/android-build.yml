@@ -303,7 +303,104 @@ jobs:
             app/build/reports/androidTests/
             app/build/outputs/androidTest-results/
 
-  # La publication est un job a part, qui depend des trois autres.
+  # L'APK publie est le build release, minifie par R8 ; les tests instrumentes
+  # tournent sur le build debug, qui ne l'est pas. Une classe retiree a tort par
+  # R8 ne se verrait donc qu'au lancement sur le telephone. Ce job installe
+  # l'APK exact qui sera publie, le lance, et echoue s'il plante ou s'arrete.
+  release-smoke:
+    name: Release smoke test (emulator)
+    needs: build
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      API_LEVEL: 30
+    steps:
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: apk-${{ needs.build.outputs.tag }}
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # Le script du runner d'emulateur execute chaque ligne a part : une
+      # boucle ou un if n'y survivraient pas. D'ou un fichier.
+      - name: Write smoke script
+        run: |
+          cat > smoke.sh <<'SH'
+          set -u
+          APK="$1"
+          PKG=com.kps.trackmyweight
+          adb install -r "$APK" || { echo "::error::Installation de l'APK release impossible"; exit 1; }
+          adb logcat -c
+          adb shell am start -W -n "$PKG/.MainActivity"
+          # Laisse le temps a Hilt, Room et au premier ecran de s'initialiser.
+          sleep 25
+          adb logcat -d > logcat.txt
+          if grep -q "FATAL EXCEPTION" logcat.txt && grep -A3 "FATAL EXCEPTION" logcat.txt | grep -q "$PKG"; then
+            echo "::error::L'APK release plante au lancement"
+            grep -A40 "FATAL EXCEPTION" logcat.txt
+            exit 1
+          fi
+          if ! adb shell pidof "$PKG" > /dev/null; then
+            echo "::error::Le processus de l'app ne tourne plus apres le lancement"
+            tail -n 200 logcat.txt
+            exit 1
+          fi
+          echo "Release lancee sans crash."
+          SH
+
+      - name: AVD cache
+        id: avd-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ env.API_LEVEL }}-aosp_atd
+
+      - name: Create AVD & warm up
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ env.API_LEVEL }}
+          arch: x86_64
+          target: aosp_atd
+          force-avd-creation: false
+          ram-size: 3072M
+          heap-size: 384M
+          disk-size: 6144M
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: echo "AVD ready"
+
+      - name: Install and launch release APK
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ env.API_LEVEL }}
+          arch: x86_64
+          target: aosp_atd
+          force-avd-creation: false
+          ram-size: 3072M
+          heap-size: 384M
+          disk-size: 6144M
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: bash smoke.sh trackmyweight-${{ needs.build.outputs.tag }}.apk
+
+      - name: Upload logcat
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-smoke-logcat
+          path: logcat.txt
+          if-no-files-found: ignore
+
+  # La publication est un job a part, qui depend des autres.
   #
   # Auparavant elle vivait dans `build`, sans aucun `needs` : l'APK partait en
   # release meme quand les tests echouaient, puisque les jobs sont paralleles et
@@ -318,7 +415,7 @@ jobs:
   # ce qui est le comportement voulu, on ne publie pas depuis dev.
   release:
     name: Publish release
-    needs: [build, unit-tests, instrumented-tests]
+    needs: [build, unit-tests, instrumented-tests, release-smoke]
     if: github.ref == 'refs/heads/main' || github.event.inputs.publish_release == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
