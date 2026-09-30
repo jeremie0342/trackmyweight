@@ -23,8 +23,10 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 
+// Conversion de l'ancien format de sauvegarde (v1-v2) vers les entités, pour
+// l'import uniquement : ce format n'est plus produit.
+
 // ─────── Profile ───────
-fun UserProfileEntity.toB() = BProfile(sex, birthDate.toString(), heightCm, preferredUnit, currency, locale, activityLevel, coachModeEnabled)
 fun BProfile.toEntity(now: Instant = Clock.System.now()) = UserProfileEntity(
     sex = sex, birthDate = LocalDate.parse(birthDate), heightCm = heightCm,
     preferredUnit = preferredUnit, currency = currency, locale = locale,
@@ -33,7 +35,6 @@ fun BProfile.toEntity(now: Instant = Clock.System.now()) = UserProfileEntity(
 )
 
 // ─────── Goal ───────
-fun GoalEntity.toB() = BGoal(targetWeightKg, targetDate.toString(), phase, startedAt.toString(), endedAt?.toString(), notes)
 fun BGoal.toEntity(now: Instant = Clock.System.now()) = GoalEntity(
     targetWeightKg = targetWeightKg, targetDate = LocalDate.parse(targetDate),
     phase = phase, isActive = true, startedAt = LocalDate.parse(startedAt),
@@ -42,7 +43,6 @@ fun BGoal.toEntity(now: Instant = Clock.System.now()) = GoalEntity(
 )
 
 // ─────── Weight ───────
-fun WeightEntryEntity.toB() = BWeight(date.toString(), weightKg, source, recordedAt.toString(), note)
 fun BWeight.toEntity() = WeightEntryEntity(
     date = LocalDate.parse(date), weightKg = weightKg, source = source,
     recordedAt = Instant.parse(recordedAt), note = note,
@@ -50,15 +50,6 @@ fun BWeight.toEntity() = WeightEntryEntity(
 )
 
 // ─────── Measurement ───────
-fun BodyMeasurementSessionEntity.toB() = BMeasurement(
-    date = date.toString(), neckCm = neckCm, shoulderCm = shoulderCm, chestCm = chestCm,
-    waistCm = waistCm, hipCm = hipCm,
-    armLeftCm = armLeftCm, armRightCm = armRightCm,
-    forearmLeftCm = forearmLeftCm, forearmRightCm = forearmRightCm,
-    thighLeftCm = thighLeftCm, thighRightCm = thighRightCm,
-    calfLeftCm = calfLeftCm, calfRightCm = calfRightCm,
-    wristCm = wristCm, notes = notes,
-)
 fun BMeasurement.toEntity(now: Instant = Clock.System.now()) = BodyMeasurementSessionEntity(
     date = LocalDate.parse(date),
     neckCm = neckCm, shoulderCm = shoulderCm, chestCm = chestCm,
@@ -72,12 +63,6 @@ fun BMeasurement.toEntity(now: Instant = Clock.System.now()) = BodyMeasurementSe
 )
 
 // ─────── Food ───────
-fun FoodEntity.toB() = BFood(
-    name = name, brand = brand, region = region, category = category,
-    kcalPer100g = kcalPer100g, proteinPer100g = proteinPer100g,
-    carbsPer100g = carbsPer100g, fatsPer100g = fatsPer100g, fiberPer100g = fiberPer100g,
-    defaultServingG = defaultServingG, servingLabel = servingLabel, barcode = barcode,
-)
 fun BFood.toEntity(now: Instant = Clock.System.now()) = FoodEntity(
     name = name, brand = brand, region = region, category = category,
     kcalPer100g = kcalPer100g, proteinPer100g = proteinPer100g,
@@ -88,18 +73,6 @@ fun BFood.toEntity(now: Instant = Clock.System.now()) = FoodEntity(
 )
 
 // ─────── Meal ───────
-fun MealEntity.toB(entries: List<MealEntryEntity>, foodsById: Map<Long, FoodEntity>): BMeal = BMeal(
-    date = date.toString(), mealType = mealType, eatenAt = eatenAt.toString(), notes = notes,
-    entries = entries.map { e ->
-        BMealEntry(
-            foodName = foodsById[e.foodId]?.name ?: "?",
-            portionMode = e.portionMode, portionQuantity = e.portionQuantity,
-            resolvedGrams = e.resolvedGrams,
-            kcal = e.snapKcal, proteinG = e.snapProteinG, carbsG = e.snapCarbsG,
-            fatsG = e.snapFatsG, fiberG = e.snapFiberG,
-        )
-    },
-)
 fun BMeal.toEntity(now: Instant = Clock.System.now()) = MealEntity(
     date = LocalDate.parse(date), mealType = mealType,
     eatenAt = Instant.parse(eatenAt), notes = notes, createdAt = now,
@@ -111,15 +84,6 @@ fun BMealEntry.toEntity(mealId: Long, foodId: Long) = MealEntryEntity(
 )
 
 // ─────── Favorites ───────
-fun FavoriteMealEntity.toB(entries: List<FavoriteMealEntryEntity>, foodsById: Map<Long, FoodEntity>) = BFavoriteMeal(
-    name = name, mealTypeHint = mealTypeHint,
-    entries = entries.map { e ->
-        BFavoriteMealEntry(
-            foodName = foodsById[e.foodId]?.name ?: "?",
-            portionMode = e.portionMode, portionQuantity = e.portionQuantity,
-        )
-    },
-)
 fun BFavoriteMeal.toEntity(now: Instant = Clock.System.now()) = FavoriteMealEntity(
     name = name, mealTypeHint = mealTypeHint, createdAt = now,
 )
@@ -129,25 +93,6 @@ fun BFavoriteMealEntry.toEntity(favoriteMealId: Long, foodId: Long) = FavoriteMe
 )
 
 // ─────── Workout session ───────
-fun WorkoutSessionEntity.toB(
-    performed: List<PerformedExerciseEntity>,
-    setsByPerformed: Map<PerformedExerciseEntity, List<PerformedSetEntity>>,
-) = BWorkoutSession(
-    date = date.toString(), startedAt = startedAt.toString(), endedAt = endedAt?.toString(),
-    templateName = null, sessionRpe = sessionRpe, notes = notes, totalVolumeKg = totalVolumeKg,
-    performedExercises = performed.map { pe ->
-        BPerformedExercise(
-            exerciseName = pe.exerciseNameSnapshot, orderIndex = pe.orderIndex, notes = pe.notes,
-            sets = setsByPerformed[pe].orEmpty().map { s ->
-                BPerformedSet(s.setNumber, s.weightKg, s.reps, s.rpe, s.type, s.restBeforeSec)
-            },
-            targetSets = pe.targetSets, targetRepsMin = pe.targetRepsMin,
-            targetRepsMax = pe.targetRepsMax, targetRpe = pe.targetRpe,
-            targetWeightKg = pe.targetWeightKg, restSecOverride = pe.restSecOverride,
-            supersetGroup = pe.supersetGroup,
-        )
-    },
-)
 fun BWorkoutSession.toEntity() = WorkoutSessionEntity(
     date = LocalDate.parse(date),
     startedAt = Instant.parse(startedAt),
@@ -170,11 +115,6 @@ fun BPerformedSet.toEntity(performedExerciseId: Long) = PerformedSetEntity(
 )
 
 // ─────── Cardio ───────
-fun CardioSessionEntity.toB() = BCardio(
-    date = date.toString(), startedAt = startedAt.toString(), endedAt = endedAt?.toString(),
-    type = type, durationSec = durationSec, distanceM = distanceM, avgSpeedKmh = avgSpeedKmh,
-    avgRpe = avgRpe, caloriesEstimated = caloriesEstimated, source = source, notes = notes,
-)
 fun BCardio.toEntity() = CardioSessionEntity(
     date = LocalDate.parse(date), startedAt = Instant.parse(startedAt),
     endedAt = endedAt?.let(Instant::parse), type = type, durationSec = durationSec,
@@ -184,26 +124,19 @@ fun BCardio.toEntity() = CardioSessionEntity(
 )
 
 // ─────── Sleep/Steps/Water/DailyLog/Habit ───────
-fun SleepEntryEntity.toB() = BSleep(date.toString(), bedtime.toString(), wakeTime.toString(), durationMin, qualityRating, source)
 fun BSleep.toEntity() = SleepEntryEntity(
     date = LocalDate.parse(date), bedtime = Instant.parse(bedtime), wakeTime = Instant.parse(wakeTime),
     durationMin = durationMin, qualityRating = qualityRating, source = source,
     createdAt = Clock.System.now(),
 )
-fun StepsEntryEntity.toB() = BSteps(date.toString(), count, source, correctionFactor, adjustedCount)
 fun BSteps.toEntity() = StepsEntryEntity(
     date = LocalDate.parse(date), count = count, source = source,
     correctionFactor = correctionFactor, adjustedCount = adjustedCount,
     updatedAt = Clock.System.now(),
 )
-fun WaterEntryEntity.toB() = BWater(date.toString(), timestamp.toString(), volumeMl, source)
 fun BWater.toEntity() = WaterEntryEntity(
     date = LocalDate.parse(date), timestamp = Instant.parse(timestamp),
     volumeMl = volumeMl, source = source,
-)
-fun DailyLogEntity.toB() = BDailyLog(
-    date.toString(), readinessSleep, readinessEnergy, readinessSoreness, readinessMood,
-    readinessScore, restingHrBpm, restingHrSource, freeNote,
 )
 fun BDailyLog.toEntity(now: Instant = Clock.System.now()) = DailyLogEntity(
     date = LocalDate.parse(date),
@@ -218,10 +151,6 @@ fun BHabitCompletion.toEntity(habitId: Long) = HabitCompletionEntity(
 )
 
 // ─────── DietPhase ───────
-fun DietPhaseEntity.toB() = BDietPhase(
-    startDate.toString(), endDate?.toString(), phase,
-    targetKcal, targetProteinG, targetCarbsG, targetFatsG, notes,
-)
 fun BDietPhase.toEntity(now: Instant = Clock.System.now()) = DietPhaseEntity(
     startDate = LocalDate.parse(startDate),
     endDate = endDate?.let(LocalDate::parse),

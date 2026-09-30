@@ -8,12 +8,14 @@ import com.kps.trackmyweight.data.db.enums.BodyFatMethod
 import com.kps.trackmyweight.data.db.enums.PhotoAngle
 import com.kps.trackmyweight.data.db.enums.WeightSource
 import kotlinx.datetime.Instant
+import kotlinx.serialization.Serializable
 import kotlinx.datetime.LocalDate
 
 @Entity(
     tableName = "weight_entry",
     indices = [Index(value = ["date"], unique = true)],
 )
+@Serializable
 data class WeightEntryEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val date: LocalDate,
@@ -32,6 +34,7 @@ data class WeightEntryEntity(
     tableName = "body_measurement_session",
     indices = [Index(value = ["date"], unique = true)],
 )
+@Serializable
 data class BodyMeasurementSessionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val date: LocalDate,
@@ -70,6 +73,7 @@ data class BodyMeasurementSessionEntity(
         ),
     ],
 )
+@Serializable
 data class ProgressPhotoEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val date: LocalDate,
@@ -97,6 +101,7 @@ data class ProgressPhotoEntity(
         ),
     ],
 )
+@Serializable
 data class BodyCompositionSnapshotEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val date: LocalDate,

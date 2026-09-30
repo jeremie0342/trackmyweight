@@ -9,6 +9,7 @@ import com.kps.trackmyweight.data.db.enums.ExerciseMechanics
 import com.kps.trackmyweight.data.db.enums.MaxLoadSource
 import com.kps.trackmyweight.data.db.enums.MuscleGroup
 import kotlinx.datetime.Instant
+import kotlinx.serialization.Serializable
 
 @Entity(
     tableName = "exercise",
@@ -17,6 +18,7 @@ import kotlinx.datetime.Instant
         Index(value = ["primaryMuscle"]),
     ],
 )
+@Serializable
 data class ExerciseEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
@@ -57,6 +59,7 @@ data class ExerciseEntity(
     ],
     indices = [Index(value = ["exerciseId", "measuredAt"])],
 )
+@Serializable
 data class ExerciseMaxLoadEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val exerciseId: Long,
@@ -79,6 +82,7 @@ data class ExerciseMaxLoadEntity(
     ],
     indices = [Index("equipmentId")],
 )
+@Serializable
 data class ExerciseEquipmentRequirementEntity(
     val exerciseId: Long,
     val equipmentId: Long,
@@ -94,6 +98,7 @@ data class ExerciseEquipmentRequirementEntity(
     ],
     indices = [Index("substituteExerciseId")],
 )
+@Serializable
 data class ExerciseSubstitutionEntity(
     val exerciseId: Long,
     val substituteExerciseId: Long,

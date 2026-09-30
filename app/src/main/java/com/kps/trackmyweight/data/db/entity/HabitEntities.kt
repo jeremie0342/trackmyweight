@@ -9,9 +9,11 @@ import com.kps.trackmyweight.data.db.enums.HeartRateSource
 import com.kps.trackmyweight.data.db.enums.SleepSource
 import com.kps.trackmyweight.data.db.enums.StepsSource
 import kotlinx.datetime.Instant
+import kotlinx.serialization.Serializable
 import kotlinx.datetime.LocalDate
 
 @Entity(tableName = "daily_log")
+@Serializable
 data class DailyLogEntity(
     @PrimaryKey val date: LocalDate,
     val readinessSleep: Int? = null,
@@ -30,6 +32,7 @@ data class DailyLogEntity(
     tableName = "habit_definition",
     indices = [Index(value = ["key"], unique = true), Index("isActive")],
 )
+@Serializable
 data class HabitDefinitionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val key: String,
@@ -52,6 +55,7 @@ data class HabitDefinitionEntity(
     ],
     indices = [Index("date")],
 )
+@Serializable
 data class HabitCompletionEntity(
     val habitId: Long,
     val date: LocalDate,
@@ -63,6 +67,7 @@ data class HabitCompletionEntity(
     tableName = "sleep_entry",
     indices = [Index(value = ["date"], unique = true)],
 )
+@Serializable
 data class SleepEntryEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     /** Jour du réveil. */
@@ -83,6 +88,7 @@ data class SleepEntryEntity(
     tableName = "steps_entry",
     indices = [Index(value = ["date"], unique = true)],
 )
+@Serializable
 data class StepsEntryEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val date: LocalDate,
@@ -97,6 +103,7 @@ data class StepsEntryEntity(
     tableName = "heart_rate_sample",
     indices = [Index("timestamp"), Index("context")],
 )
+@Serializable
 data class HeartRateSampleEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val timestamp: Instant,

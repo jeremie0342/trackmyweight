@@ -1,24 +1,5 @@
 package com.kps.trackmyweight.data.backup
 
-import com.kps.trackmyweight.data.db.entity.BodyMeasurementSessionEntity
-import com.kps.trackmyweight.data.db.entity.CardioSessionEntity
-import com.kps.trackmyweight.data.db.entity.DailyLogEntity
-import com.kps.trackmyweight.data.db.entity.DietPhaseEntity
-import com.kps.trackmyweight.data.db.entity.FavoriteMealEntity
-import com.kps.trackmyweight.data.db.entity.FavoriteMealEntryEntity
-import com.kps.trackmyweight.data.db.entity.FoodEntity
-import com.kps.trackmyweight.data.db.entity.GoalEntity
-import com.kps.trackmyweight.data.db.entity.HabitCompletionEntity
-import com.kps.trackmyweight.data.db.entity.MealEntity
-import com.kps.trackmyweight.data.db.entity.MealEntryEntity
-import com.kps.trackmyweight.data.db.entity.PerformedExerciseEntity
-import com.kps.trackmyweight.data.db.entity.PerformedSetEntity
-import com.kps.trackmyweight.data.db.entity.SleepEntryEntity
-import com.kps.trackmyweight.data.db.entity.StepsEntryEntity
-import com.kps.trackmyweight.data.db.entity.UserProfileEntity
-import com.kps.trackmyweight.data.db.entity.WaterEntryEntity
-import com.kps.trackmyweight.data.db.entity.WeightEntryEntity
-import com.kps.trackmyweight.data.db.entity.WorkoutSessionEntity
 import com.kps.trackmyweight.data.db.enums.ActivityLevel
 import com.kps.trackmyweight.data.db.enums.CardioSource
 import com.kps.trackmyweight.data.db.enums.CardioType
@@ -39,12 +20,16 @@ import com.kps.trackmyweight.data.db.enums.WeightSource
 import kotlinx.serialization.Serializable
 
 /**
- * Racine de la sauvegarde. Portable, sans dépendance Room.
- * Tous les timestamps sont stockés en ISO-8601 strings pour être robustes cross-plateforme.
+ * Racine de l'ancien format de sauvegarde (v1-v2).
+ *
+ * Ce format ne couvrait qu'une partie des données (ni programmes, ni salles, ni
+ * records, ni prix...) et désignait exercices et aliments par leur nom. Il n'est
+ * plus produit : il reste lisible pour restaurer les fichiers déjà exportés.
+ * Le format courant est [BackupRoot].
  */
 @Serializable
-data class BackupRoot(
-    val schemaVersion: Int = SCHEMA_VERSION,
+data class LegacyBackupRoot(
+    val schemaVersion: Int = 2,
     val exportedAt: String,
     val profile: BProfile? = null,
     val activeGoal: BGoal? = null,
@@ -63,9 +48,7 @@ data class BackupRoot(
     val activePhase: BDietPhase? = null,
     /** Métadonnées des photos ; les fichiers JPG sont dans photos/{fileKey}.jpg du zip. */
     val photos: List<BPhoto> = emptyList(),
-) {
-    companion object { const val SCHEMA_VERSION = 2 }
-}
+)
 
 @Serializable data class BPhoto(
     /** Clé unique dans le zip : photos/{fileKey}.jpg */

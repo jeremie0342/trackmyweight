@@ -21,34 +21,35 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/** Ancien format (v2) : il n'est plus produit, mais doit rester lisible. */
 class BackupSerializationTest {
 
     private val json = Json { prettyPrint = true; ignoreUnknownKeys = true; encodeDefaults = true }
 
     @Test fun `round-trip preserves all fields`() {
         val root = sampleRoot()
-        val encoded = json.encodeToString(BackupRoot.serializer(), root)
-        val decoded = json.decodeFromString(BackupRoot.serializer(), encoded)
+        val encoded = json.encodeToString(LegacyBackupRoot.serializer(), root)
+        val decoded = json.decodeFromString(LegacyBackupRoot.serializer(), encoded)
         assertEquals(root, decoded)
     }
 
-    @Test fun `schema version is 2`() {
-        assertEquals(2, BackupRoot.SCHEMA_VERSION)
+    @Test fun `legacy format keeps version 2, current format is 3`() {
         assertEquals(2, sampleRoot().schemaVersion)
+        assertEquals(3, BackupRoot.SCHEMA_VERSION)
     }
 
     @Test fun `decoded json is stable across encoders`() {
         val root = sampleRoot()
-        val once = json.encodeToString(BackupRoot.serializer(), root)
-        val twice = json.encodeToString(BackupRoot.serializer(), json.decodeFromString(BackupRoot.serializer(), once))
+        val once = json.encodeToString(LegacyBackupRoot.serializer(), root)
+        val twice = json.encodeToString(LegacyBackupRoot.serializer(), json.decodeFromString(LegacyBackupRoot.serializer(), once))
         assertEquals(once, twice)
     }
 
     @Test fun `empty root can be decoded`() {
-        val empty = json.encodeToString(BackupRoot.serializer(), BackupRoot(
+        val empty = json.encodeToString(LegacyBackupRoot.serializer(), LegacyBackupRoot(
             exportedAt = "2026-07-16T12:00:00Z", profile = null, activeGoal = null, activePhase = null,
         ))
-        val decoded = json.decodeFromString(BackupRoot.serializer(), empty)
+        val decoded = json.decodeFromString(LegacyBackupRoot.serializer(), empty)
         assertTrue(decoded.weights.isEmpty())
         assertTrue(decoded.workoutSessions.isEmpty())
     }
@@ -56,11 +57,11 @@ class BackupSerializationTest {
     @Test fun `decoding tolerates missing optional fields`() {
         // JSON minimum n'ayant que exportedAt
         val minimal = """{ "exportedAt": "2026-07-16T12:00:00Z" }"""
-        val decoded = json.decodeFromString(BackupRoot.serializer(), minimal)
+        val decoded = json.decodeFromString(LegacyBackupRoot.serializer(), minimal)
         assertEquals("2026-07-16T12:00:00Z", decoded.exportedAt)
     }
 
-    private fun sampleRoot() = BackupRoot(
+    private fun sampleRoot() = LegacyBackupRoot(
         exportedAt = "2026-07-16T12:00:00Z",
         profile = BProfile(
             sex = Sex.MALE, birthDate = "1995-03-12", heightCm = 180f,

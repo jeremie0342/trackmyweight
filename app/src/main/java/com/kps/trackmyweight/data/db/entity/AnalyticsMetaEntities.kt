@@ -6,12 +6,14 @@ import androidx.room.PrimaryKey
 import com.kps.trackmyweight.data.db.enums.BackupDestination
 import com.kps.trackmyweight.data.db.enums.CorrelationPeriod
 import kotlinx.datetime.Instant
+import kotlinx.serialization.Serializable
 import kotlinx.datetime.LocalDate
 
 @Entity(
     tableName = "weekly_review",
     indices = [Index(value = ["weekStart"], unique = true)],
 )
+@Serializable
 data class WeeklyReviewEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val weekStart: LocalDate,
@@ -33,6 +35,7 @@ data class WeeklyReviewEntity(
     tableName = "correlation_insight",
     indices = [Index(value = ["metricX", "metricY", "period"])],
 )
+@Serializable
 data class CorrelationInsightEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val metricX: String,
@@ -45,6 +48,7 @@ data class CorrelationInsightEntity(
 )
 
 @Entity(tableName = "projection_snapshot")
+@Serializable
 data class ProjectionSnapshotEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val computedAt: Instant,
@@ -78,6 +82,7 @@ data class BackupRecordEntity(
     tableName = "app_event",
     indices = [Index("timestamp"), Index("type")],
 )
+@Serializable
 data class AppEventEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val timestamp: Instant,

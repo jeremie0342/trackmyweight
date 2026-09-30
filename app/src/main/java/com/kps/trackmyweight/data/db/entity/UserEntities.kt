@@ -11,12 +11,14 @@ import com.kps.trackmyweight.data.db.enums.GoalPhase
 import com.kps.trackmyweight.data.db.enums.Sex
 import com.kps.trackmyweight.data.db.enums.UnitSystem
 import kotlinx.datetime.Instant
+import kotlinx.serialization.Serializable
 import kotlinx.datetime.LocalDate
 
 /**
  * Profil utilisateur unique (singleton, id = 1).
  */
 @Entity(tableName = "user_profile")
+@Serializable
 data class UserProfileEntity(
     @PrimaryKey val id: Long = 1L,
     val sex: Sex,
@@ -35,6 +37,7 @@ data class UserProfileEntity(
     tableName = "goal",
     indices = [Index(value = ["isActive"])],
 )
+@Serializable
 data class GoalEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val targetWeightKg: Float,
@@ -52,6 +55,7 @@ data class GoalEntity(
     tableName = "gym",
     indices = [Index(value = ["isDefault"])],
 )
+@Serializable
 data class GymEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
@@ -64,6 +68,7 @@ data class GymEntity(
     tableName = "equipment",
     indices = [Index(value = ["key"], unique = true)],
 )
+@Serializable
 data class EquipmentEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val key: String,
@@ -80,6 +85,7 @@ data class EquipmentEntity(
     ],
     indices = [Index("equipmentId")],
 )
+@Serializable
 data class GymEquipmentEntity(
     val gymId: Long,
     val equipmentId: Long,

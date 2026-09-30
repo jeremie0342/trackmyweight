@@ -5,6 +5,7 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.kps.trackmyweight.data.db.converters.Converters
 import com.kps.trackmyweight.data.db.dao.AnalyticsMetaDao
+import com.kps.trackmyweight.data.db.dao.BackupDao
 import com.kps.trackmyweight.data.db.dao.BodyDao
 import com.kps.trackmyweight.data.db.dao.ExerciseDao
 import com.kps.trackmyweight.data.db.dao.HabitDao
@@ -137,6 +138,7 @@ abstract class TrackMyWeightDatabase : RoomDatabase() {
     abstract fun nutritionDao(): NutritionDao
     abstract fun habitDao(): HabitDao
     abstract fun analyticsMetaDao(): AnalyticsMetaDao
+    abstract fun backupDao(): BackupDao
 
     companion object {
         const val DB_NAME = "trackmyweight.db"

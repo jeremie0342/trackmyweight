@@ -11,6 +11,7 @@ import com.kps.trackmyweight.data.db.enums.PainArea
 import com.kps.trackmyweight.data.db.enums.PrKind
 import com.kps.trackmyweight.data.db.enums.SetType
 import kotlinx.datetime.Instant
+import kotlinx.serialization.Serializable
 import kotlinx.datetime.LocalDate
 
 // ─────────────────────────────────────────────────────────────
@@ -21,6 +22,7 @@ import kotlinx.datetime.LocalDate
     tableName = "workout_template",
     indices = [Index(value = ["isArchived"])],
 )
+@Serializable
 data class WorkoutTemplateEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
@@ -42,6 +44,7 @@ data class WorkoutTemplateEntity(
         Index("exerciseId"),
     ],
 )
+@Serializable
 data class TemplateExerciseEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val templateId: Long,
@@ -65,6 +68,7 @@ data class TemplateExerciseEntity(
     tableName = "template_rotation_group",
     indices = [Index(value = ["dayOfWeek"])],
 )
+@Serializable
 data class TemplateRotationGroupEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
@@ -81,6 +85,7 @@ data class TemplateRotationGroupEntity(
     ],
     indices = [Index("templateId")],
 )
+@Serializable
 data class TemplateRotationMemberEntity(
     val rotationGroupId: Long,
     val templateId: Long,
@@ -88,6 +93,7 @@ data class TemplateRotationMemberEntity(
 )
 
 @Entity(tableName = "program")
+@Serializable
 data class ProgramEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
@@ -114,6 +120,7 @@ data class ProgramEntity(
         Index("rotationGroupId"),
     ],
 )
+@Serializable
 data class ProgramDayEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val programId: Long,
@@ -142,6 +149,7 @@ data class ProgramDayEntity(
         Index("gymId"),
     ],
 )
+@Serializable
 data class WorkoutSessionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val date: LocalDate,
@@ -171,6 +179,7 @@ data class WorkoutSessionEntity(
         Index("exerciseId"),
     ],
 )
+@Serializable
 data class PerformedExerciseEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val sessionId: Long,
@@ -202,6 +211,7 @@ data class PerformedExerciseEntity(
     ],
     indices = [Index(value = ["performedExerciseId", "setNumber"])],
 )
+@Serializable
 data class PerformedSetEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val performedExerciseId: Long,
@@ -228,6 +238,7 @@ data class PerformedSetEntity(
         Index("setId"),
     ],
 )
+@Serializable
 data class PersonalRecordEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val exerciseId: Long,
@@ -263,6 +274,7 @@ data class MonthlyTonnageRow(
     tableName = "muscle_group_volume_weekly",
     indices = [Index(value = ["isoWeek", "muscleGroup"], unique = true)],
 )
+@Serializable
 data class MuscleGroupVolumeWeeklyEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     /** Format ISO "2026-W29". */
@@ -285,6 +297,7 @@ data class MuscleGroupVolumeWeeklyEntity(
     tableName = "cardio_session",
     indices = [Index(value = ["date"])],
 )
+@Serializable
 data class CardioSessionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val date: LocalDate,
@@ -319,6 +332,7 @@ data class CardioSessionEntity(
     ],
     indices = [Index("sessionId")],
 )
+@Serializable
 data class CardioBlockEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val sessionId: Long,
@@ -341,6 +355,7 @@ data class CardioBlockEntity(
         Index("contextExerciseId"),
     ],
 )
+@Serializable
 data class PainLogEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val date: LocalDate,

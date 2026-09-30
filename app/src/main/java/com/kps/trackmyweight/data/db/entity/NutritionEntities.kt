@@ -13,6 +13,7 @@ import com.kps.trackmyweight.data.db.enums.MealType
 import com.kps.trackmyweight.data.db.enums.PortionMode
 import com.kps.trackmyweight.data.db.enums.WaterSource
 import kotlinx.datetime.Instant
+import kotlinx.serialization.Serializable
 import kotlinx.datetime.LocalDate
 
 @Entity(
@@ -24,6 +25,7 @@ import kotlinx.datetime.LocalDate
         Index(value = ["category"]),
     ],
 )
+@Serializable
 data class FoodEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
@@ -61,6 +63,7 @@ data class FoodFtsEntity(
     ],
     indices = [Index(value = ["foodId", "mode"], unique = true)],
 )
+@Serializable
 data class FoodPortionAliasEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val foodId: Long,
@@ -87,6 +90,7 @@ data class ProteinValueRow(
     ],
     indices = [Index(value = ["foodId", "updatedAt"])],
 )
+@Serializable
 data class FoodPriceEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val foodId: Long,
@@ -102,6 +106,7 @@ data class FoodPriceEntity(
     tableName = "meal",
     indices = [Index(value = ["date", "mealType"])],
 )
+@Serializable
 data class MealEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val date: LocalDate,
@@ -120,6 +125,7 @@ data class MealEntity(
     ],
     indices = [Index("mealId"), Index("foodId")],
 )
+@Serializable
 data class MealEntryEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val mealId: Long,
@@ -143,6 +149,7 @@ data class MealEntryEntity(
     tableName = "favorite_meal",
     indices = [Index("lastUsedAt")],
 )
+@Serializable
 data class FavoriteMealEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
@@ -160,6 +167,7 @@ data class FavoriteMealEntity(
     ],
     indices = [Index("favoriteMealId"), Index("foodId")],
 )
+@Serializable
 data class FavoriteMealEntryEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val favoriteMealId: Long,
@@ -169,6 +177,7 @@ data class FavoriteMealEntryEntity(
 )
 
 @Entity(tableName = "recipe")
+@Serializable
 data class RecipeEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
@@ -191,6 +200,7 @@ data class RecipeEntity(
     ],
     indices = [Index("recipeId"), Index("foodId")],
 )
+@Serializable
 data class RecipeIngredientEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val recipeId: Long,
@@ -202,6 +212,7 @@ data class RecipeIngredientEntity(
     tableName = "water_entry",
     indices = [Index(value = ["date"])],
 )
+@Serializable
 data class WaterEntryEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val date: LocalDate,
@@ -214,6 +225,7 @@ data class WaterEntryEntity(
     tableName = "alcohol_entry",
     indices = [Index(value = ["date"])],
 )
+@Serializable
 data class AlcoholEntryEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val date: LocalDate,
@@ -229,6 +241,7 @@ data class AlcoholEntryEntity(
     tableName = "diet_phase",
     indices = [Index(value = ["isActive"]), Index(value = ["startDate"])],
 )
+@Serializable
 data class DietPhaseEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val startDate: LocalDate,

@@ -16,15 +16,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -40,10 +45,12 @@ import com.kps.trackmyweight.ui.common.PrimaryButton
 import com.kps.trackmyweight.ui.common.SecondaryButton
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class SettingsUiState(
     val isBusy: Boolean = false,
@@ -124,34 +131,32 @@ class SettingsViewModel @Inject constructor(
 
     suspend fun writeExportZip(output: java.io.OutputStream) = backupService.exportZip(output)
 
-    fun importJson(payload: String) {
+    /**
+     * Restaure une sauvegarde. Le flux est ouvert ici, dans la coroutine, et non
+     * par l'appelant : ouvert côté écran avec `use`, il était refermé dès le
+     * retour de `launch`, avant que l'import n'ait fini de le lire.
+     */
+    fun importBackup(isZip: Boolean, open: () -> java.io.InputStream?) {
         _state.value = _state.value.copy(isBusy = true, lastMessage = null)
         viewModelScope.launch {
-            runCatching { backupService.importJson(payload) }
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    val input = open() ?: error("Impossible d'ouvrir le fichier")
+                    input.use { stream ->
+                        if (isZip) backupService.importZip(stream)
+                        else backupService.importJson(stream.bufferedReader().readText())
+                    }
+                }
+            }
                 .onSuccess { summary ->
-                    _state.value = SettingsUiState(
+                    val base = "Restauration réussie : ${summary.entitiesRestored} éléments."
+                    _state.value = _state.value.copy(
                         isBusy = false,
-                        lastMessage = "Restauration réussie : ${summary.entitiesRestored} entités.",
+                        lastMessage = (listOf(base) + summary.warnings).joinToString("\n\n"),
                     )
                 }
                 .onFailure {
-                    _state.value = SettingsUiState(isBusy = false, lastMessage = "Erreur : ${it.message}")
-                }
-        }
-    }
-
-    fun importZip(input: java.io.InputStream) {
-        _state.value = _state.value.copy(isBusy = true, lastMessage = null)
-        viewModelScope.launch {
-            runCatching { backupService.importZip(input) }
-                .onSuccess { summary ->
-                    _state.value = SettingsUiState(
-                        isBusy = false,
-                        lastMessage = "Restauration réussie : ${summary.entitiesRestored} entités (photos incluses).",
-                    )
-                }
-                .onFailure {
-                    _state.value = SettingsUiState(isBusy = false, lastMessage = "Erreur import : ${it.message}")
+                    _state.value = _state.value.copy(isBusy = false, lastMessage = "Erreur import : ${it.message}")
                 }
         }
     }
@@ -224,24 +229,43 @@ fun SettingsScreen(
         }
     }
 
+    // Fichier choisi, en attente de confirmation : la restauration remplace les
+    // données actuelles, elle ne doit pas partir sur un simple choix de fichier.
+    var pendingImport by remember { mutableStateOf<Uri?>(null) }
+
     val openDoc = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let {
-            scope.launch {
-                runCatching {
-                    val mime = context.contentResolver.getType(it)
-                    val name = context.contentResolver.query(it, null, null, null, null)?.use { c ->
-                        val idx = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
-                        if (idx >= 0 && c.moveToFirst()) c.getString(idx) else null
-                    } ?: ""
-                    if (name.endsWith(".zip", ignoreCase = true) || mime == "application/zip") {
-                        context.contentResolver.openInputStream(it)?.use { input -> vm.importZip(input) }
-                    } else {
-                        val text = context.contentResolver.openInputStream(it)?.bufferedReader()?.use { r -> r.readText() }
-                        if (text != null) vm.importJson(text)
-                    }
-                }.onFailure { e -> vm.setMessage("Échec import : ${e.message}") }
-            }
-        }
+        pendingImport = uri
+    }
+
+    pendingImport?.let { uri ->
+        AlertDialog(
+            onDismissRequest = { pendingImport = null },
+            title = { Text("Restaurer cette sauvegarde ?") },
+            text = {
+                Text(
+                    "Toutes tes données actuelles (poids, séances, programmes, repas, habitudes, photos…) " +
+                        "seront remplacées par celles du fichier. Une sauvegarde d'une ancienne version de l'app " +
+                        "est fusionnée avec tes données au lieu de les remplacer.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingImport = null
+                    val mime = context.contentResolver.getType(uri)
+                    val name = runCatching {
+                        context.contentResolver.query(uri, null, null, null, null)?.use { c ->
+                            val idx = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                            if (idx >= 0 && c.moveToFirst()) c.getString(idx) else null
+                        }
+                    }.getOrNull().orEmpty()
+                    val isZip = name.endsWith(".zip", ignoreCase = true) || mime == "application/zip"
+                    vm.importBackup(isZip) { context.contentResolver.openInputStream(uri) }
+                }) { Text("Restaurer") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingImport = null }) { Text("Annuler") }
+            },
+        )
     }
 
     Scaffold(containerColor = MaterialTheme.colorScheme.background) { insets ->
@@ -384,7 +408,7 @@ fun SettingsScreen(
                 Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Sauvegarde & restauration", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
-                        "Exporte toutes tes données (profil, objectif, poids, mensurations, repas, séances, sommeil, habitudes) en un fichier JSON, ou restaure depuis un fichier précédemment exporté.",
+                        "Exporte toutes tes données (profil, objectifs, poids, mensurations, photos, séances, programmes, salles, records, repas, prix, habitudes, sommeil) dans un fichier, ou restaure depuis un fichier précédemment exporté. La sauvegarde reste sur ton téléphone ou dans le dossier que tu choisis : l'app n'envoie rien sur Internet.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
